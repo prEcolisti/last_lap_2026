@@ -5,7 +5,6 @@ import { useAuth } from '../auth/useAuth.ts'
 import { saveProgress } from '../game/progress.ts'
 import { routes } from '../routes.ts'
 
-/** Вступительная катсцена: сюда попадаем сразу после входа */
 export function IntroPage() {
   const { user } = useAuth()
   const navigate = useNavigate()

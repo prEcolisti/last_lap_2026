@@ -123,7 +123,6 @@
   color: var(--color-text-dim);
 }
 
-/* подсказки про клавиатуру на тач-экранах не нужны */
 @media (hover: none) {
   .suspects__keys {
     display: none;

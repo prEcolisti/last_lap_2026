@@ -289,7 +289,6 @@
   }
 }
 
-/* телефон вертикально: под кадром много места, диалог и субтитры уходят туда */
 @media (orientation: portrait) and (max-width: 600px) {
   .cutscene__stage {
     overflow: visible;
@@ -311,13 +310,11 @@
     font-size: 10px;
   }
 
-  /* длинные титры с историей дела: фон чёрный, текст может выйти за кадр */
   .cutscene__caption--sm {
     font-size: 12px;
   }
 }
 
-/* телефон горизонтально: кнопки наверх, чтобы не закрывать диалог */
 @media (max-height: 480px) {
   .cutscene__controls {
     top: 8px;

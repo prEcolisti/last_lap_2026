@@ -9,19 +9,13 @@ import './Cutscene.css'
 
 interface CutsceneProps {
   scenes: Scene[]
-  /** Надпись над кнопкой старта */
   title?: string
   playerName: string
-  /** skipped = true, если игрок нажал «Пропустить» */
   onFinish(skipped: boolean): void
 }
 
 type Phase = 'ready' | 'playing' | 'paused'
 
-/**
- * Целый масштаб, чтобы пиксели оставались квадратными. На телефоне целый ×2
- * не влезает, а ×1 слишком мелко: там растягиваем кадр на всю ширину.
- */
 function useStageScale() {
   const [scale, setScale] = useState(1)
   useEffect(() => {
@@ -174,8 +168,6 @@ export function Cutscene({ scenes, title = 'Последний круг', player
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, finish, togglePause])
 
-  // Вкладка ушла в фон: кадры больше не приходят, а звук бы продолжил играть.
-  // Ставим на паузу, чтобы картинка и звук не разъехались.
   useEffect(() => {
     if (phase !== 'playing') return
     const onVisibility = () => {

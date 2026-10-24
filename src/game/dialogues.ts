@@ -1,12 +1,5 @@
-/**
- * Допросы. У каждого подозреваемого — список вопросов детектива.
- * Ответ может открыть следующий вопрос (`requires`) и записать
- * показание в блокнот (`fact`). У реплик подозреваемого есть эмоция
- * для портрета, у детектива — строгий взгляд на острых вопросах.
- */
 import type { Mood } from './portraits.ts'
 
-/** Реплика; M — эмоции портрета того, кого спрашивают */
 export type Line<M extends string = Mood> =
   | { by: 'detective'; text: string; sharp: boolean }
   | { by: 'suspect'; text: string; mood: M }
@@ -15,13 +8,10 @@ export interface Topic<M extends string = Mood> {
   id: string
   question: string
   lines: Line<M>[]
-  /** Вопрос появится, только когда уже задан этот */
   requires?: string
-  /** Что детектив записывает в блокнот после ответа */
   fact?: string
 }
 
-// у реплики детектива эмоции нет, поэтому она подходит к любому собеседнику
 const ask = (text: string, sharp = false): Line<never> => ({ by: 'detective', text, sharp })
 const say = (mood: Mood, text: string): Line => ({ by: 'suspect', text, mood })
 
@@ -169,7 +159,6 @@ export type BartenderMood = 'calm' | 'recall'
 const recall = (text: string): Line<BartenderMood> => ({ by: 'suspect', text, mood: 'recall' })
 const calm = (text: string): Line<BartenderMood> => ({ by: 'suspect', text, mood: 'calm' })
 
-/** Бармен в VIP-ложе: свидетель, не подозреваемый */
 export const bartenderTopics: Topic<BartenderMood>[] = [
   {
     id: 'guests',
@@ -198,10 +187,8 @@ export const bartenderTopics: Topic<BartenderMood>[] = [
   },
 ]
 
-/** Ключ заданного вопроса в прогрессе: вопросы разных подозреваемых не путаются */
 export const topicKey = (suspectId: string, topicId: string) => `${suspectId}:${topicId}`
 
-/** Все вопросы всем подозреваемым заданы — можно называть убийцу */
 export const allQuestioned = (asked: string[]) =>
   Object.entries(dialogues).every(([suspectId, topics]) =>
     topics.every((topic) => asked.includes(topicKey(suspectId, topic.id))),

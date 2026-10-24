@@ -1,7 +1,3 @@
-/**
- * Путь по клику: сетка 4×4 пикселя по проходимой зоне локации, поиск в ширину
- * по восьми направлениям, затем путь выпрямляется по прямой видимости.
- */
 import { isWalkable, type Location, type Point } from './locations/index.ts'
 import { H, W } from './pixels.ts'
 
@@ -60,14 +56,12 @@ function lineOfSight(location: Location, a: Point, b: Point) {
   return true
 }
 
-/** Точка, куда реально можно дойти: сама цель или ближайшая проходимая клетка */
 export function reachable(location: Location, target: Point): Point {
   if (isWalkable(location, target.x, target.y)) return target
   const index = nearestOpen(grid(location), target)
   return index < 0 ? target : center(index)
 }
 
-/** Список точек от from до target; пустой, если идти некуда */
 export function findPath(location: Location, from: Point, target: Point): Point[] {
   const cells = grid(location)
   const goal = reachable(location, target)
@@ -90,7 +84,6 @@ export function findPath(location: Location, from: Point, target: Point): Point[
         if (nc < 0 || nr < 0 || nc >= COLS || nr >= ROWS) continue
         const next = nr * COLS + nc
         if (!cells[next] || previous[next] >= 0) continue
-        // по диагонали только если не срезаем угол стены
         if (dr && dc && (!cells[r * COLS + nc] || !cells[nr * COLS + c])) continue
         previous[next] = index
         queue.push(next)

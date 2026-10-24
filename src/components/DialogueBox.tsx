@@ -4,12 +4,10 @@ import './DialogueBox.css'
 
 interface DialogueBoxProps {
   talk: Conversation
-  /** Имя собеседника над его репликами */
   speaker: string
   placeholder: string
 }
 
-/** Лог разговора и список вопросов под ним */
 export function DialogueBox({ talk, speaker, placeholder }: DialogueBoxProps) {
   const { topic, spoken, lineIndex, shown, typing, finished } = talk
 

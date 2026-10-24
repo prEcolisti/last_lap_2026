@@ -1,15 +1,10 @@
 import './TrackBackdrop.css'
 
 interface TrackBackdropProps {
-  /** На внутренних страницах трасса уходит на второй план */
   faded?: boolean
-  /** Пиксельный болид и стартовая прямая показываем только на главной */
   withCar?: boolean
 }
 
-/**
- * Фон страницы: вид на овальную трассу сверху, нарисованный «по клеточкам».
- */
 export function TrackBackdrop({ faded = false, withCar = false }: TrackBackdropProps) {
   return (
     <svg
@@ -20,7 +15,6 @@ export function TrackBackdrop({ faded = false, withCar = false }: TrackBackdropP
       focusable="false"
       shapeRendering="crispEdges"
     >
-      {/* полотно трассы */}
       <rect
         className="track__asphalt"
         x="262"
@@ -30,7 +24,6 @@ export function TrackBackdrop({ faded = false, withCar = false }: TrackBackdropP
         rx="252"
         ry="252"
       />
-      {/* пиксельная кромка */}
       <rect
         className="track__kerb track__kerb--outer"
         x="234"
@@ -49,7 +42,6 @@ export function TrackBackdrop({ faded = false, withCar = false }: TrackBackdropP
         rx="224"
         ry="224"
       />
-      {/* разметка по центру полотна */}
       <rect
         className="track__dashes"
         x="262"
@@ -62,13 +54,11 @@ export function TrackBackdrop({ faded = false, withCar = false }: TrackBackdropP
 
       {withCar && (
         <>
-          {/* стартовая линия поперёк нижней прямой */}
           <g className="track__start">
             {Array.from({ length: 6 }, (_, row) => (
               <rect key={row} x={680 + (row % 2) * 8} y={734 + row * 8} width="8" height="8" />
             ))}
           </g>
-          {/* клетчатый флаг на дальней дуге */}
           <g className="track__flag">
             <rect x="1232" y="278" width="9" height="9" />
             <rect x="1250" y="278" width="9" height="9" />
@@ -76,7 +66,6 @@ export function TrackBackdrop({ faded = false, withCar = false }: TrackBackdropP
             <rect x="1232" y="296" width="9" height="9" />
             <rect x="1250" y="296" width="9" height="9" />
           </g>
-          {/* болид первого пилота */}
           <g className="track__car">
             <rect x="420" y="752" width="42" height="12" />
             <rect x="428" y="746" width="22" height="6" />

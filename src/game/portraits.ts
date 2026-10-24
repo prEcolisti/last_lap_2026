@@ -17,12 +17,10 @@ import sponsorCalm from '../assets/portraits/sponsor-calm.png'
 import sponsorLie from '../assets/portraits/sponsor-lie.png'
 import sponsorNervous from '../assets/portraits/sponsor-nervous.png'
 
-/** Портреты для диалогов: 62×62, показываем с целым увеличением */
 export const PORTRAIT_SIZE = 62
 
 export type Mood = 'calm' | 'nervous' | 'lie' | 'broken'
 
-/** Ключи совпадают с id подозреваемых в story.ts */
 export const suspectPortraits: Record<string, Record<Mood, string>> = {
   pilot: { calm: pilot22Calm, nervous: pilot22Nervous, lie: pilot22Lie, broken: pilot22Broken },
   mechanic: { calm: mechanicCalm, nervous: mechanicNervous, lie: mechanicLie, broken: mechanicBroken },
@@ -31,8 +29,6 @@ export const suspectPortraits: Record<string, Record<Mood, string>> = {
 
 export const detectivePortraits = { calm: detectiveCalm, sharp: detectiveSharp }
 
-/** Бармен в VIP-ложе: спокоен и вспоминает */
 export const bartenderPortraits = { calm: bartenderCalm, recall: bartenderRecall }
 
-/** Пилот №1, погибший: для фото и флешбэков */
 export const victimPortraits = { calm: pilot1Calm, happy: pilot1Happy }

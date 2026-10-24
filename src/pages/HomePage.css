@@ -22,7 +22,6 @@
   line-height: 1.05;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  /* след от болида: зелёная тень слева, красная справа */
   text-shadow:
     -4px 0 0 rgb(61 191 114 / 55%),
     4px 0 0 rgb(224 72 72 / 35%);

@@ -1,11 +1,5 @@
-/**
- * Общие инструменты пиксель-арта: offscreen-холсты с кешем, заливка по целым
- * пикселям, автоматический контур и смешивание цветов палитры.
- */
-
 export const OUTLINE = '#0b0f0e'
 
-/** Размер кадра всех сцен; canvas масштабируется целым множителем */
 export const W = 320
 export const H = 180
 
@@ -20,7 +14,6 @@ export function offscreen(width: number, height: number) {
 
 const cache = new Map<string, HTMLCanvasElement>()
 
-/** Собирает холст один раз и дальше отдаёт его из кеша */
 export function cached(key: string, make: () => HTMLCanvasElement): HTMLCanvasElement {
   let hit = cache.get(key)
   if (!hit) {
@@ -35,7 +28,6 @@ export function fill(ctx: CanvasRenderingContext2D, color: string, x: number, y:
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h))
 }
 
-/** Детерминированный генератор случайных чисел: один seed — один узор */
 export function rng(seed: number) {
   let a = seed
   return () => {
@@ -47,7 +39,6 @@ export function rng(seed: number) {
   }
 }
 
-/** Смешивает два цвета #rrggbb; amount = 0 — первый цвет, 1 — второй */
 export function mix(from: string, to: string, amount: number): string {
   const a = parseInt(from.slice(1), 16)
   const b = parseInt(to.slice(1), 16)
@@ -59,7 +50,6 @@ export function mix(from: string, to: string, amount: number): string {
   return `#${((channel(16) << 16) | (channel(8) << 8) | channel(0)).toString(16).padStart(6, '0')}`
 }
 
-/** Обводит силуэт тёмным контуром в один пиксель по четырём соседям */
 export function outline(canvas: HTMLCanvasElement, color = OUTLINE) {
   const ctx = canvas.getContext('2d')!
   const { width, height } = canvas
@@ -76,7 +66,6 @@ export function outline(canvas: HTMLCanvasElement, color = OUTLINE) {
   return canvas
 }
 
-/** Пиксельный шрифт 3×5 для номеров и табло */
 const DIGITS: Record<string, string[]> = {
   '0': ['###', '#.#', '#.#', '#.#', '###'],
   '1': ['.#.', '##.', '.#.', '.#.', '###'],
@@ -101,7 +90,6 @@ export function drawNumber(ctx: CanvasRenderingContext2D, text: string, x: numbe
   })
 }
 
-/** Буквы 5×5 для надписей на документах и печати */
 const LETTERS: Record<string, string[]> = {
   А: ['.###.', '#...#', '#####', '#...#', '#...#'],
   Д: ['.###.', '.#.#.', '.#.#.', '#####', '#...#'],
@@ -116,12 +104,10 @@ const LETTERS: Record<string, string[]> = {
   '№': ['#..#.', '##.#.', '#.##.', '#..#.', '#..##'],
 }
 
-/** Ширина строки в пикселях до увеличения */
 export function textWidth(text: string): number {
   return [...text].reduce((sum, char) => sum + (char === ' ' ? 3 : (LETTERS[char] ?? DIGITS[char])?.[0].length ?? 0) + 1, -1)
 }
 
-/** Надпись заглавными буквами пиксельным шрифтом */
 export function drawText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string, size = 1) {
   ctx.fillStyle = color
   let cursor = x

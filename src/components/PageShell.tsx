@@ -5,9 +5,7 @@ import './PageShell.css'
 
 interface PageShellProps {
   children: ReactNode
-  /** Правый угол шапки: счётчик кругов или ссылка назад */
   headerSlot?: ReactNode
-  /** Подписи в подвале — только на главной */
   footerSlot?: ReactNode
   fadedTrack?: boolean
   withCar?: boolean
@@ -16,7 +14,6 @@ interface PageShellProps {
 export function PageShell({ children, headerSlot, footerSlot, fadedTrack, withCar }: PageShellProps) {
   return (
     <div className="shell">
-      {/* трасса только за шапкой и контентом: шахматка и подвал её не перекрывают */}
       <div className="shell__backdrop">
         <TrackBackdrop faded={fadedTrack} withCar={withCar} />
       </div>

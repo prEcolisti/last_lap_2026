@@ -1,7 +1,3 @@
-/**
- * Фоны катсцены 320×180 в новом стиле. Всё статичное собирается один раз
- * в offscreen-холсты, за кадр рисуются только готовые слои.
- */
 import { cone, glow, pixelEllipse } from './lighting.ts'
 import { asphalt, crowdColors, grass, kerb, lamp, metal, night } from './palette.ts'
 import { H, OUTLINE, W, cached, drawNumber, fill, mix, offscreen, outline, rng } from './pixels.ts'
@@ -21,7 +17,6 @@ function wrap(value: number, size: number) {
   return ((value % size) + size) % size
 }
 
-/** Повторяющаяся лента со сдвигом для параллакса */
 function drawStrip(ctx: CanvasRenderingContext2D, image: HTMLCanvasElement, offset: number, y: number) {
   for (let x = -Math.round(wrap(offset, image.width)); x < W; x += image.width) ctx.drawImage(image, x, y)
 }
@@ -55,20 +50,16 @@ export function drawSky(ctx: CanvasRenderingContext2D) {
 }
 
 export interface StandsOptions {
-  /** Сидит ли спонсор в VIP-ложе */
   sponsorInBox: boolean
-  /** Есть ли на трибунах зрители */
   crowd: boolean
 }
 
 export const STANDS_WIDTH = 640
 const STANDS_HEIGHT = 80
-/** Где на ленте трибуны стоит VIP-ложа */
 export const VIP_X = 430
 const VIP_W = 82
 const VIP_SEATS = 5
 
-/** Гость в ложе: чиби 8×11, глаза — столбики 1×2 */
 function guest(ctx: CanvasRenderingContext2D, x: number, y: number, hair: string, suit: string) {
   const { canvas, ctx: g } = offscreen(10, 13)
   fill(g, hair, 2, 1, 6, 2)
@@ -83,7 +74,6 @@ function guest(ctx: CanvasRenderingContext2D, x: number, y: number, hair: string
   ctx.drawImage(canvas, x - 1, y - 1)
 }
 
-/** Спонсор: лысина, седые виски, золотые очки, красный галстук */
 function sponsor(ctx: CanvasRenderingContext2D, x: number, y: number) {
   const { canvas, ctx: g } = offscreen(10, 13)
   fill(g, SKIN, 2, 1, 6, 6)
@@ -106,13 +96,11 @@ function buildStands({ sponsorInBox, crowd }: StandsOptions) {
   const { canvas, ctx } = offscreen(STANDS_WIDTH, STANDS_HEIGHT)
   const rand = rng(crowd ? 42 : 43)
 
-  // крыша и опоры
   fill(ctx, metal.dark, 0, 0, STANDS_WIDTH, 6)
   fill(ctx, metal.base, 0, 0, STANDS_WIDTH, 1)
   fill(ctx, OUTLINE, 0, 6, STANDS_WIDTH, 1)
   fill(ctx, '#0e1316', 0, 7, STANDS_WIDTH, 3)
 
-  // ряды сидений; верхние в тени, нижние под прожекторами
   for (let row = 0; row < 8; row++) {
     const y = 10 + row * 7
     const dim = row < 3 ? 0.62 : row < 6 ? 0.42 : 0.22
@@ -135,7 +123,6 @@ function buildStands({ sponsorInBox, crowd }: StandsOptions) {
     fill(ctx, metal.light, x, 7, 1, 58)
   }
 
-  // VIP-ложа: рама, тёплый свет внутри, стекло с бликами
   const vx = VIP_X - 8
   fill(ctx, OUTLINE, vx - 1, 9, VIP_W + 2, 50)
   fill(ctx, metal.base, vx, 10, VIP_W, 48)
@@ -166,14 +153,12 @@ function buildStands({ sponsorInBox, crowd }: StandsOptions) {
   fill(ctx, metal.base, vx + 3, 46, VIP_W - 6, 4)
   fill(ctx, metal.light, vx + 3, 46, VIP_W - 6, 1)
 
-  // стекло: два косых блика
   ctx.fillStyle = 'rgba(200, 220, 230, 0.08)'
   for (let i = 0; i < 18; i++) {
     ctx.fillRect(vx + 10 + i, 14 + i * 2, 3, 2)
     ctx.fillRect(vx + 46 + i, 14 + i * 2, 2, 2)
   }
 
-  // передний бортик трибуны с рекламой
   fill(ctx, OUTLINE, 0, 65, STANDS_WIDTH, 1)
   fill(ctx, metal.base, 0, 66, STANDS_WIDTH, 14)
   fill(ctx, metal.light, 0, 66, STANDS_WIDTH, 1)
@@ -232,7 +217,6 @@ function buildAsphalt() {
   return canvas
 }
 
-/** Отблески прожекторов на мокром асфальте: стоят на месте вместе с мачтами */
 function buildReflections() {
   const { canvas, ctx } = offscreen(W, TRACK_BOTTOM - TRACK_TOP)
   for (const x of FLOODLIGHTS) {
@@ -254,12 +238,10 @@ function buildFloodCones() {
 }
 
 export interface SideTrackOptions {
-  /** Сдвиг камеры по трассе в пикселях */
   scroll: number
   stands: StandsOptions
 }
 
-/** Трасса сбоку с параллаксом: небо стоит, трибуна едет медленно, асфальт — быстро */
 export function drawSideTrack(ctx: CanvasRenderingContext2D, { scroll, stands }: SideTrackOptions) {
   drawSky(ctx)
   drawStrip(ctx, standsCanvas(stands), scroll * 0.35, 34)
@@ -269,12 +251,10 @@ export function drawSideTrack(ctx: CanvasRenderingContext2D, { scroll, stands }:
   ctx.drawImage(cached('flood-cones', buildFloodCones), 0, 0)
 }
 
-/** Тень болида на асфальте: три ступени, без размытия */
 export function carShadow(ctx: CanvasRenderingContext2D, x: number, lane: number) {
   pixelEllipse(ctx, x + 36, lane, 34, 2, 'rgba(0, 0, 0, 0.35)')
 }
 
-/** Стенка из шин у отбойника в зоне вылета */
 export function drawTyreWall(ctx: CanvasRenderingContext2D, x: number, dented: boolean) {
   const wall = cached(`tyres-${dented}`, () => {
     const built = offscreen(46, 24)
@@ -292,7 +272,6 @@ export function drawTyreWall(ctx: CanvasRenderingContext2D, x: number, dented: b
   ctx.drawImage(wall, x, TRACK_TOP - 22)
 }
 
-/** Клетчатая полоса финиша и арка над ней */
 export function drawFinishLine(ctx: CanvasRenderingContext2D, x: number) {
   for (let y = TRACK_TOP; y < TRACK_BOTTOM; y += 4) {
     const odd = ((y - TRACK_TOP) / 4) % 2
@@ -314,7 +293,6 @@ export function drawFinishLine(ctx: CanvasRenderingContext2D, x: number) {
   ctx.drawImage(arch, x - 9, TRACK_TOP - 50)
 }
 
-/** Овал трассы сверху (заставка и круги) */
 export const OVAL = { cx: 160, cy: 96, rx: 118, ry: 56 }
 
 export function ovalPoint(angle: number) {
@@ -356,7 +334,6 @@ function buildTopTrack() {
   }
   ctx.putImageData(image, 0, 0)
 
-  // трибуна сверху: крыша рядами, как на месте аварии
   fill(ctx, OUTLINE, 89, 9, 142, 22)
   for (let y = 10; y < 30; y += 2) {
     fill(ctx, '#181f25', 90, y, 140, 1)
@@ -365,7 +342,6 @@ function buildTopTrack() {
   fill(ctx, '#2b333b', 90, 10, 140, 1)
   fill(ctx, '#c9a227', 150, 30, 20, 1)
 
-  // боксы и пит-лейн внизу
   fill(ctx, OUTLINE, 99, 161, 122, 14)
   fill(ctx, metal.base, 100, 162, 120, 12)
   fill(ctx, metal.light, 100, 162, 120, 1)
@@ -374,13 +350,11 @@ function buildTopTrack() {
     fill(ctx, lamp.amber, x + 2, 166, 5, 1)
   }
 
-  // старт-финиш
   for (let y = 143; y < 158; y += 2) {
     fill(ctx, '#c9d0d2', 160, y, 2, 2)
     fill(ctx, '#141a1e', 162, y, 2, 2)
   }
 
-  // деревья по углам
   const trees = rng(5)
   for (const [tx, ty] of [[12, 14], [26, 8], [300, 16], [288, 30], [10, 160], [306, 150], [296, 166]]) {
     const r = 6 + Math.round(trees() * 3)
@@ -389,7 +363,6 @@ function buildTopTrack() {
     pixelEllipse(ctx, tx - 2, ty - 2, r - 3, r - 3, '#16271f')
   }
 
-  // прожекторы и их пятна на траве и асфальте
   for (const [lx, ly] of [[60, 40], [260, 40], [60, 150], [260, 150]]) {
     glow(ctx, lx, ly, 34, 22)
     fill(ctx, OUTLINE, lx - 2, ly - 2, 5, 5)
@@ -415,14 +388,12 @@ function buildPitBox() {
   fill(ctx, metal.dark, 0, 14, W, 3)
   fill(ctx, OUTLINE, 0, 17, W, 1)
 
-  // табло команды №7
   fill(ctx, OUTLINE, 127, 25, 66, 29)
   fill(ctx, '#c62a2f', 128, 26, 64, 27)
   fill(ctx, '#e04848', 128, 26, 64, 1)
   fill(ctx, '#8f1f24', 128, 52, 64, 1)
   drawNumber(ctx, '7', 154, 29, '#f2f2f2', 4)
 
-  // перфопанель с инструментами и тумбы
   for (const x of [14, 266]) {
     fill(ctx, OUTLINE, x - 1, 39, 42, 28)
     fill(ctx, metal.base, x, 40, 40, 26)
@@ -444,7 +415,6 @@ function buildPitBox() {
     fill(ctx, metal.light, x - 1, 78, 42, 1)
   }
 
-  // график смены: четыре фамилии и четыре подписи
   fill(ctx, OUTLINE, 213, 29, 41, 43)
   fill(ctx, '#d8dcd4', 214, 30, 39, 41)
   fill(ctx, '#b8bdb5', 252, 31, 1, 40)
@@ -459,7 +429,6 @@ function buildPitBox() {
     sign.forEach((dy, i) => fill(ctx, '#3d5a8f', 235 + i, y + 1 + dy, 1, 1))
   }
 
-  // шины в стопках
   for (const x of [64, 240]) {
     const stack = offscreen(18, 30)
     for (let i = 0; i < 4; i++) {
@@ -471,13 +440,11 @@ function buildPitBox() {
     ctx.drawImage(stack.canvas, x, 87)
   }
 
-  // пол бокса и разметка пит-лейна
   fill(ctx, '#20272d', 0, 116, W, 64)
   fill(ctx, '#c9a227', 0, 116, W, 2)
   fill(ctx, OUTLINE, 0, 118, W, 1)
   for (let x = 0; x < W; x += 24) fill(ctx, '#2c343b', x, 162, 12, 2)
 
-  // лампы под потолком и их свет на полу
   for (const x of PIT_LAMPS) {
     cone(ctx, x, 18, 150, 26)
     glow(ctx, x, 150, 34, 8)
@@ -504,7 +471,6 @@ function buildPitWall() {
   const { canvas, ctx } = offscreen(W, H)
   night.sky.forEach((color, i) => fill(ctx, color, 0, i * 10, W, 10))
   fill(ctx, night.sky[4], 0, 50, W, 70)
-  // дальние трибуны и огни трассы за стеклом
   fill(ctx, '#0b1114', 0, 58, W, 18)
   const rand = rng(21)
   for (let i = 0; i < 40; i++) fill(ctx, rand() > 0.7 ? lamp.amber : '#2b333b', rand() * W, 60 + rand() * 14, 1, 1)
@@ -522,7 +488,6 @@ function buildPitWall() {
     for (let gy = 0; gy < MONITOR_H; gy += 10) fill(ctx, '#0c1c14', x, y + gy, MONITOR_W, 1)
   }
 
-  // стол-пульт
   fill(ctx, OUTLINE, 0, 103, W, 1)
   fill(ctx, metal.light, 0, 104, W, 3)
   fill(ctx, metal.shine, 0, 104, W, 1)
@@ -536,10 +501,6 @@ function buildPitWall() {
   return canvas
 }
 
-/**
- * Пит-уолл: слева график скорости, справа температура мотора.
- * telemetry — 0..1, на 0.75 и выше линии краснеют.
- */
 export function drawPitWall(ctx: CanvasRenderingContext2D, telemetry: number, time: number) {
   ctx.drawImage(cached('pit-wall', buildPitWall), 0, 0)
   MONITORS.forEach(({ x, y }, i) => {
@@ -556,7 +517,6 @@ export function drawPitWall(ctx: CanvasRenderingContext2D, telemetry: number, ti
   })
 }
 
-/** Стартовые огни на балке: lit — сколько из пяти горит */
 export function drawStartLights(ctx: CanvasRenderingContext2D, x: number, y: number, lit: number) {
   const gantry = cached('start-gantry', () => {
     const built = offscreen(64, 40)

@@ -1,9 +1,3 @@
-/**
- * Звуки катсцен синтезируются Web Audio, аудиофайлов нет. Фоновая музыка — в music.ts.
- * AudioContext запускается только после жеста пользователя,
- * поэтому `GameAudio.create()` вызываем из обработчика клика.
- */
-
 type Loop = { stop(): void }
 
 export class GameAudio {
@@ -51,8 +45,6 @@ export class GameAudio {
     this.silence()
     void this.ctx.close()
   }
-
-  // --- строительные блоки ---
 
   private envelope(peak: number, attack: number, hold: number, release: number, at = this.now) {
     const gain = this.ctx.createGain()
@@ -118,8 +110,6 @@ export class GameAudio {
     this.loops.add(loop)
     return loop
   }
-
-  // --- звуки катсцены ---
 
   beep(high = false) {
     this.tone('square', high ? 880 : 440, high ? 0.5 : 0.25, 0.18)
@@ -248,12 +238,10 @@ export class GameAudio {
     this.tone('sine', 70, 0.2, 0.2)
   }
 
-  /** Тяжёлый вздох: шум с медленной атакой */
   sigh() {
     this.burst(this.filter('bandpass', 750, 0.8), 0.12, 0.35, 0.2, 0.9)
   }
 
-  /** Низкий глухой удар под надпись «Ты ошибся.» */
   wrongSting() {
     this.burst(this.filter('lowpass', 300), 0.3, 0.005, 0.05, 0.6)
     this.tone('sine', 82, 1.8, 0.35)
@@ -275,7 +263,6 @@ export class GameAudio {
     this.burst(this.filter('lowpass', 900), 0.3, 0.003, 0.03, 0.15)
   }
 
-  /** Гул лампы в комнате допросов */
   roomTone() {
     return this.noiseLoop(this.filter('bandpass', 120, 4), 0.05, 1.5)
   }
@@ -291,8 +278,6 @@ export class GameAudio {
   rain() {
     return this.noiseLoop(this.filter('highpass', 1600), 0.05, 1)
   }
-
-  // --- мотор: один цикл, тон и громкость меняются по ходу сцен ---
 
   engineStart() {
     if (this.engine) return
@@ -313,7 +298,6 @@ export class GameAudio {
     this.engine = { osc, gain, filter }
   }
 
-  /** rpm 0..1, level — громкость */
   engineSet(rpm: number, level: number, ramp = 0.3) {
     if (!this.engine) this.engineStart()
     const { osc, gain, filter } = this.engine!
@@ -332,7 +316,6 @@ export class GameAudio {
     this.engine = null
   }
 
-  /** Полная тишина: глушим всё, что играет */
   silence() {
     this.engineStop(true)
     this.loops.forEach((loop) => loop.stop())

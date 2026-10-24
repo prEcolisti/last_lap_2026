@@ -1,7 +1,6 @@
 import { useAuth } from '../auth/useAuth.ts'
 import './GameHeader.css'
 
-/** Правый угол шапки в игре: где мы сейчас и кнопка выхода */
 export function GameHeader({ label }: { label: string }) {
   const { logout } = useAuth()
   return (

@@ -3,15 +3,9 @@ import { useAuth } from '../auth/useAuth.ts'
 import { topicKey, type Topic } from './dialogues.ts'
 import { loadProgress, saveProgress } from './progress.ts'
 
-/** Символов в секунду у печатающегося ответа */
 const TYPE_SPEED = 45
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/**
- * Разговор детектива с кем-то: подозреваемым на допросе или свидетелем в локации.
- * Ответ печатается посимвольно, щелчок, пробел или Enter — дальше.
- * Вопрос считается заданным, только когда ответ дослушан до конца.
- */
 export function useConversation<M extends string>(speakerId: string, topics: Topic<M>[], idleMood: M) {
   const { user } = useAuth()
   const [asked, setAsked] = useState<string[]>(() => (user ? loadProgress(user.id).asked : []))
@@ -29,7 +23,6 @@ export function useConversation<M extends string>(speakerId: string, topics: Top
 
   const markHeard = (heardId: string) => {
     if (isAsked(heardId)) return
-    // прогресс перечитываем: его могли поменять осмотром улики на той же странице
     const current = user ? loadProgress(user.id).asked : asked
     const next = [...new Set([...current, ...asked, topicKey(speakerId, heardId)])]
     setAsked(next)
@@ -43,7 +36,6 @@ export function useConversation<M extends string>(speakerId: string, topics: Top
     if (index === topic.lines.length - 1) markHeard(topic.id)
   }
 
-  // посимвольная печать текущей реплики
   useEffect(() => {
     if (!line || !typing) return
     const timer = window.setTimeout(() => {
@@ -84,7 +76,6 @@ export function useConversation<M extends string>(speakerId: string, topics: Top
     if (instant && lines.length === 1) markHeard(nextTopicId)
   }
 
-  // эмоция на портрете — от последней реплики собеседника
   const spoken = topic ? topic.lines.slice(0, lineIndex + 1) : []
   const lastAnswer = [...spoken].reverse().find((item) => item.by === 'suspect')
   const mood: M = lastAnswer?.by === 'suspect' ? lastAnswer.mood : idleMood
@@ -101,9 +92,7 @@ export function useConversation<M extends string>(speakerId: string, topics: Top
     mood,
     advance,
     start,
-    /** Вопросы, которые уже можно задать */
     available: topics.filter((item) => !item.requires || isAsked(item.requires)),
-    /** Показания из дослушанных ответов */
     facts: topics.filter((item) => item.fact && isAsked(item.id)),
   }
 }

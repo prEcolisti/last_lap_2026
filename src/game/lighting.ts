@@ -1,11 +1,6 @@
-/**
- * Квантованный свет: пятна, конусы и виньетка собираются из полупрозрачных
- * ступеней по целым пикселям, без плавных градиентов.
- */
 import { warmGlow } from './palette.ts'
 import { H, W, cached, offscreen } from './pixels.ts'
 
-/** Эллипс из горизонтальных полос по целым пикселям */
 export function pixelEllipse(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number, color: string) {
   ctx.fillStyle = color
   for (let dy = -ry; dy <= ry; dy++) {
@@ -14,7 +9,6 @@ export function pixelEllipse(ctx: CanvasRenderingContext2D, cx: number, cy: numb
   }
 }
 
-/** Пятно света: несколько вложенных эллипсов, каждый следующий ярче */
 export function glow(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number, steps = warmGlow) {
   steps.forEach((color, i) => {
     const k = 1 - i / (steps.length + 0.5)
@@ -22,7 +16,6 @@ export function glow(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: 
   })
 }
 
-/** Конус от прожектора вниз: две ступени яркости */
 export function cone(ctx: CanvasRenderingContext2D, x: number, top: number, bottom: number, spread: number) {
   const layers = [
     { width: 1, color: warmGlow[0] },
@@ -57,7 +50,6 @@ function buildVignette() {
   return canvas
 }
 
-/** Мягкое затемнение по краям кадра ступенями */
 export function vignette(ctx: CanvasRenderingContext2D) {
   ctx.drawImage(cached('vignette', buildVignette), 0, 0)
 }

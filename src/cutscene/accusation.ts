@@ -1,9 +1,3 @@
-/**
- * Финал: обвинение, комната допросов сверху. Подозреваемый входит, садится
- * напротив детектива, и они говорят. Не тот — «Ты ошибся.»,
- * спонсор — документы на стол, печать «Дело раскрыто» и титры.
- * Музыка: в комнате тишина, после ошибки — грустный вальс, после победы — победная тема.
- */
 import { IDLE_FRAME, walkFrame, type Direction } from '../game/characters.ts'
 import { art, type ArtId } from '../game/cutsceneArt.ts'
 import type { GameAudio } from '../game/audio.ts'
@@ -31,18 +25,14 @@ import { H, W, fill } from '../game/pixels.ts'
 import { suspects, type Suspect } from '../game/story.ts'
 import type { Scene } from './types.ts'
 
-/** Настоящий убийца */
 export const CULPRIT = 'sponsor'
 
 const between = (t: number, from: number, to: number) => t >= from && t < to
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
 
-/** Где стоят ноги входящего в дверном проёме */
 const DOOR_FEET = WALL_BOTTOM + 2
-/** Прыжок на стул: длительность и высота дуги */
 const HOP = 0.45
 const HOP_HEIGHT = 12
-/** Символов в секунду; многоточие молчания печатается медленно */
 const TYPE_SPEED = 40
 const SILENCE_SPEED = 2
 
@@ -53,13 +43,11 @@ interface Pose {
   y: number
   dir: Direction
   frame: number
-  /** Уже сидит на стуле */
   seated?: boolean
 }
 
 const seated: Pose = { x: SUSPECT_SEAT, y: FEET, dir: 'right', frame: IDLE_FRAME, seated: true }
 
-/** Затемнение ступенями: 0 — кадр виден, 1 — чёрный */
 function blackout(ctx: CanvasRenderingContext2D, amount: number) {
   const k = clamp01(amount)
   if (!k) return
@@ -72,7 +60,6 @@ function black({ ctx }: { ctx: CanvasRenderingContext2D }) {
   fill(ctx, '#000000', 0, 0, W, H)
 }
 
-/** Комната: детектив уже за столом справа; folder — папка на столе или в полёте */
 function drawScene(ctx: CanvasRenderingContext2D, sheet: ArtId, suspect: Pose | null, door = 0, folder?: { x: number; y: number }) {
   drawRoom(ctx, door)
   drawChairs(ctx)
@@ -107,7 +94,6 @@ function opening(sheet: ArtId): Scene[] {
         {
           at: 0,
           run: (audio, loops) => {
-            // в комнате допросов музыки нет, только лампа
             music.stop(2)
             loops.room = audio.roomTone()
           },
@@ -121,7 +107,6 @@ function opening(sheet: ArtId): Scene[] {
         const door = t < 5 ? Math.floor(clamp01(t / 0.8) * 4) / 4 : 1 - Math.floor(clamp01((t - 5) / 0.8) * 4) / 4
         let pose: Pose | null = null
         if (t >= 0.9) {
-          // из двери вниз, вправо к стулу, разворот и прыжок на сиденье
           const walk = clamp01((t - walkFrom) / walkTime)
           const down = APPROACH_Y - DOOR_FEET
           const distance = walk * (down + SUSPECT_SEAT - DOOR_X)
@@ -148,7 +133,6 @@ function opening(sheet: ArtId): Scene[] {
   ]
 }
 
-/** Реплика в окне диалога; sound звучит в начале реплики */
 type Beat = Line & { sound?: (audio: GameAudio) => void }
 
 const ask = (text: string, sharp = false): Beat => ({ by: 'detective', text, sharp })
@@ -227,7 +211,6 @@ function wrongEnding(sheet: ArtId): Scene[] {
   ]
 }
 
-/** Как спонсор убил пилота: каждая карточка опирается на улики, которые нашёл игрок */
 const story = [
   'Как это было',
   'Спонсор готовился заранее. На листке со схемой круиз-контроля болида №7 он обвёл провод от датчика тормоза и приписал: «отключить?», а у дросселя — «100%».',
@@ -246,7 +229,6 @@ const solvedEnding: Scene[] = [
     id: 'folder',
     duration: 3.5,
     draw: ({ ctx, t }) => {
-      // папку бросают из-за кадра справа, она дугой падает на середину стола
       const k = clamp01((t - 0.6) / (FOLDER_LANDS - 0.6))
       const folder = t < 0.6 ? undefined : { x: 330 - 170 * k, y: 60 + (TABLE_TOP - 60) * k - Math.sin(k * Math.PI) * 30 }
       drawScene(ctx, 'sponsor', seated, 0, folder)
@@ -257,7 +239,6 @@ const solvedEnding: Scene[] = [
     cues: [{ at: FOLDER_LANDS, run: (audio) => audio.paperSlap() }],
   },
   {
-    // от лица детектива: документы дела крупным планом
     id: 'documents',
     duration: 2.5,
     draw: ({ ctx, t }) => {
@@ -303,7 +284,6 @@ const solvedEnding: Scene[] = [
   ...story.map(
     (text, i): Scene => ({
       id: `credits-story-${i}`,
-      // время на чтение: чем длиннее карточка, тем дольше она висит
       duration: 3 + text.length / 22,
       draw: black,
       overlay: (t) => (t > 0.6 ? { caption: { text, size: 'sm' } } : {}),
@@ -327,6 +307,7 @@ const solvedEnding: Scene[] = [
                 'Загоруй Валентина',
                 'Лядовой Дмитрий',
                 'Штеренфельд Анна',
+                'Матвейчук Алексей',
               ].join('\n'),
               size: 'sm',
             },
@@ -340,7 +321,6 @@ const solvedEnding: Scene[] = [
   },
 ]
 
-/** Сцены финала для выбранного подозреваемого; null — нет такого */
 export function accusationScript(suspectId: string): Scene[] | null {
   const suspect = suspects.find((item) => item.id === suspectId)
   if (!suspect) return null

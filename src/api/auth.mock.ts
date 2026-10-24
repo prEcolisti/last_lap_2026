@@ -1,11 +1,6 @@
 import { ApiError } from './http.ts'
 import type { AuthApi, AuthResponse, User } from './types.ts'
 
-/**
- * Временный бэкенд в localStorage, пока нет настоящего сервера.
- * Повторяет поведение API: те же ответы и те же коды ошибок.
- */
-
 const USERS_KEY = 'last-lap:mock-users'
 const TOKENS_KEY = 'last-lap:mock-tokens'
 const LATENCY_MS = 400
@@ -27,7 +22,6 @@ function writeJson(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch {
-    // приватный режим или переполненное хранилище: данные мока не сохранятся
   }
 }
 

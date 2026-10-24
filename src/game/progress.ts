@@ -1,13 +1,6 @@
-/**
- * Прогресс игрока в localStorage по id пользователя. Когда появится бэкенд,
- * станет полем профиля на сервере.
- */
-
 export interface Progress {
   introSeen: boolean
-  /** id осмотренных улик во всех локациях */
   examined: string[]
-  /** Заданные на допросах вопросы, ключи вида `suspectId:topicId` */
   asked: string[]
 }
 
@@ -28,7 +21,6 @@ export function saveProgress(userId: string, patch: Partial<Progress>): Progress
   try {
     localStorage.setItem(key(userId), JSON.stringify(next))
   } catch {
-    // приватный режим или переполненное хранилище: прогресс не сохранится
   }
   return next
 }

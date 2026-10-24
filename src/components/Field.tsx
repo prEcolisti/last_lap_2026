@@ -3,7 +3,6 @@ import './Field.css'
 
 interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
   label: string
-  /** Подсказка под полем */
   hint?: string
   error?: string
 }

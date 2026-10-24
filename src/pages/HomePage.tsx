@@ -6,7 +6,6 @@ import { routes } from '../routes.ts'
 import './HomePage.css'
 
 export function HomePage() {
-  // после ошибочного обвинения игрока выбрасывает сюда, и доигрывает грустная тема
   const afterWrong = (useLocation().state as { afterWrong?: boolean } | null)?.afterWrong
   useMusic(afterWrong ? 'sad' : 'menu')
   return (

@@ -7,7 +7,6 @@ import { allQuestioned } from '../game/dialogues.ts'
 import { loadProgress } from '../game/progress.ts'
 import { routes } from '../routes.ts'
 
-/** Финал: катсцена обвинения. После неё — на главную; после ошибки там доигрывает грустная тема */
 export function AccusationPage() {
   const { id = '' } = useParams()
   const { user } = useAuth()

@@ -1,15 +1,7 @@
-/**
- * Фоновая музыка: один трек на всё приложение, живёт дольше страниц и катсцен.
- * Два трека — файлы из `public/music/` (их кладём сами), остальные
- * синтезируются здесь же. Если файла нет, вместо него звучит синтезированная замена.
- * Звуки машин и прочие эффекты — отдельно, в `audio.ts`.
- */
-
 export type TrackId = 'menu' | 'tension' | 'interrogation' | 'premonition' | 'garage' | 'jazz' | 'sad' | 'victory'
 
 type SynthId = Exclude<TrackId, 'menu' | 'premonition'>
 
-/** Файловые треки и чем их заменить, если файла нет */
 const files: Partial<Record<TrackId, { src: string; fallback: SynthId }>> = {
   menu: { src: 'music/once-upon-a-time.mp3', fallback: 'sad' },
   premonition: { src: 'music/premonition.mp3', fallback: 'tension' },
@@ -17,7 +9,6 @@ const files: Partial<Record<TrackId, { src: string; fallback: SynthId }>> = {
 
 const VOLUME = 0.75
 const FADE = 1.5
-/** Усиление синтезированных треков: выравнивает их громкость между собой */
 const LEVELS: Record<SynthId, number> = { tension: 1.7, interrogation: 3.5, garage: 4, jazz: 2.6, sad: 3.8, victory: 5.5 }
 
 interface Playing {
@@ -34,7 +25,6 @@ interface Kit {
 
 const midi = (note: number) => 440 * 2 ** ((note - 69) / 12)
 
-/** Нота с атакой и затуханием; filter — частота lowpass для «мягких» тембров */
 function note(
   { ctx, out }: Kit,
   type: OscillatorType,
@@ -75,7 +65,6 @@ function note(
   osc.stop(at + length + 0.05)
 }
 
-/** Короткий шум через фильтр: тарелки, щётки, лязг */
 function hiss({ ctx, out, noise }: Kit, type: BiquadFilterType, frequency: number, at: number, length: number, peak: number, q = 1, attack = 0.003) {
   const source = ctx.createBufferSource()
   source.buffer = noise
@@ -95,7 +84,6 @@ function hiss({ ctx, out, noise }: Kit, type: BiquadFilterType, frequency: numbe
   source.stop(at + length + 0.05)
 }
 
-/** Глухой удар с падающим тоном: бочка, литавра, «сердце» */
 function thump({ ctx, out }: Kit, at: number, from: number, to: number, length: number, peak: number) {
   const osc = ctx.createOscillator()
   osc.frequency.setValueAtTime(from, at)
@@ -110,7 +98,6 @@ function thump({ ctx, out }: Kit, at: number, from: number, to: number, length: 
   osc.stop(at + length + 0.05)
 }
 
-/** Непрерывный тон, громкость которого трек меняет сам */
 function drone({ ctx, out }: Kit, type: OscillatorType, frequency: number, filter = 0) {
   const osc = ctx.createOscillator()
   osc.type = type
@@ -134,10 +121,6 @@ function drone({ ctx, out }: Kit, type: OscillatorType, frequency: number, filte
   }
 }
 
-/**
- * Планировщик шагов: onStep получает номер шага и время его начала
- * и возвращает длину шага в секундах (темп может меняться на ходу).
- */
 function sequence(kit: Kit, onStep: (step: number, at: number) => number) {
   let step = 0
   let next = kit.ctx.currentTime + 0.1
@@ -149,12 +132,6 @@ function sequence(kit: Kit, onStep: (step: number, at: number) => number) {
   return () => window.clearInterval(timer)
 }
 
-/**
- * Тревога: с первой секунды гул, струнный пэд и редкое «сердце»; за минуту
- * с небольшим сердце учащается, вступают тиканье, ползущий вниз мотив,
- * тремоло сверху и пульс баса. Дальше держится на пике.
- * Всё важное звучит в средних частотах, чтобы было слышно и на ноутбуке.
- */
 function tension(kit: Kit) {
   const start = kit.ctx.currentTime
   const build = (at: number) => Math.min(1, (at - start) / 70)
@@ -170,10 +147,8 @@ function tension(kit: Kit) {
     clash.level(0.045 * Math.max(0, k - 0.25), at)
     pad[0].level(0.022, at)
     pad[1].level(0.016, at)
-    // полутон сверху проступает по мере нарастания
     pad[2].level(0.004 + 0.014 * k, at)
 
-    // «сердце»: глухой удар и щелчок, чтобы его было слышно на маленьких динамиках
     thump(kit, at, 95, 42, 0.25, 0.22 + 0.1 * k)
     thump(kit, at + beat * 0.24, 95, 42, 0.22, 0.13 + 0.06 * k)
     hiss(kit, 'bandpass', 900, at, 0.06, 0.05 + 0.03 * k, 1.5)
@@ -204,10 +179,6 @@ function tension(kit: Kit) {
   }
 }
 
-/**
- * Допросы: часы на стене, перебор баса в ми миноре, холодные аккорды
- * и редкие ноты колокольчика с эхом. Спокойно, но не уютно.
- */
 function interrogation(kit: Kit) {
   const eighth = 60 / 72 / 2
   const chords = [
@@ -243,10 +214,6 @@ function interrogation(kit: Kit) {
   })
 }
 
-/**
- * Бокс №7: механический остинато в ре миноре, лязг железа на слабых долях,
- * редкие капли сверху и тёплый пэд. Тихо и настороженно.
- */
 function garage(kit: Kit) {
   const eighth = 0.32
   const bass = [38, 38, 41, 38, 36, 36, 39, 36]
@@ -264,7 +231,6 @@ function garage(kit: Kit) {
     const root = chord[0] - 24
     const pitch = bass[step % 8] + (root - 38)
     note(kit, 'triangle', midi(pitch), at, eighth * 0.9, 0.11, { filter: 600 })
-    // тот же остинато двумя октавами выше: его и слышно на маленьких динамиках
     note(kit, 'triangle', midi(pitch + 24), at, eighth * 0.5, 0.025)
 
     if (step % 16 === 0) chord.forEach((pitch) => note(kit, 'sine', midi(pitch), at, eighth * 16, 0.025, { attack: 0.8 }))
@@ -283,10 +249,6 @@ function garage(kit: Kit) {
   })
 }
 
-/**
- * VIP-ложа: нуарный джаз в до миноре. Шагающий бас, щётки и райд со свингом,
- * аккорды электропиано и приглушённая труба через квадрат.
- */
 function jazz(kit: Kit) {
   const beat = 60 / 86
   const swing = (position: number) => Math.floor(position) + (position % 1 ? 2 / 3 : 0)
@@ -300,7 +262,6 @@ function jazz(kit: Kit) {
     { root: 36, chord: [51, 55, 58, 62] },
     { root: 43, chord: [53, 59, 62, 65] },
   ]
-  // [такт, доля, нота, длина в долях]
   const melody: [number, number, number, number][] = [
     [0, 0, 67, 1.5], [0, 1.5, 70, 0.5], [0, 2, 72, 2],
     [1, 0.5, 70, 0.5], [1, 1, 67, 1], [1, 2, 63, 2],
@@ -350,10 +311,6 @@ function jazz(kit: Kit) {
   })
 }
 
-/**
- * Ошибка: медленный вальс в ля миноре. Музыкальная шкатулка перебирает
- * аккорды, сверху простая мелодия, снизу тихий пэд.
- */
 function sad(kit: Kit) {
   const beat = 60 / 66
   const chords = [
@@ -366,7 +323,6 @@ function sad(kit: Kit) {
     [50, 57, 62, 65],
     [52, 56, 59, 64],
   ]
-  // по бару: [нота, длина в долях]
   const melody: [number, number][][] = [
     [[76, 1], [74, 1], [72, 1]],
     [[72, 2], [69, 1]],
@@ -401,10 +357,6 @@ function sad(kit: Kit) {
   })
 }
 
-/**
- * Победа, но не праздник: первые такты ещё в миноре, потом тема
- * выходит в до мажор, медь и литавры вступают только на втором круге.
- */
 function victory(kit: Kit) {
   const beat = 60 / 96
   const bars = [
@@ -470,7 +422,6 @@ class Music {
   private elements = new Map<string, { element: HTMLAudioElement; source: MediaElementAudioSourceNode }>()
   private missing = new Set<string>()
   private holds = new Set<string>()
-  /** Трек, который попросили до первого клика: звук ещё нельзя включать */
   private pending: TrackId | null = null
 
   private boot() {
@@ -479,7 +430,6 @@ class Music {
     this.ctx = ctx
     this.master = ctx.createGain()
     this.master.gain.value = VOLUME
-    // компрессор не даёт громким местам хрипеть после выравнивания треков
     const limiter = ctx.createDynamicsCompressor()
     limiter.threshold.value = -10
     limiter.ratio.value = 8
@@ -490,7 +440,6 @@ class Music {
     const data = this.noise.getChannelData(0)
     for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1
 
-    // браузер не даёт играть звук до первого жеста: ждём клик или клавишу
     const unlock = () => this.apply()
     window.addEventListener('pointerdown', unlock)
     window.addEventListener('keydown', unlock)
@@ -498,10 +447,8 @@ class Music {
     return ctx
   }
 
-  /** Включает трек; тот же трек не перезапускается, если не просили restart */
   play(id: TrackId, restart = false) {
     if (this.current?.id === id && !restart) return
-    // браузер не даёт играть звук до первого жеста: запоминаем трек и ждём клик или клавишу
     if (!this.ctx && navigator.userActivation?.hasBeenActive === false) {
       if (this.pending === null) {
         const unlock = () => {
@@ -533,7 +480,6 @@ class Music {
     this.apply()
   }
 
-  /** Если ничего не играет, включает трек; иначе оставляет текущий */
   keep(id: TrackId) {
     if (!this.current && !this.pending) this.play(id)
   }
@@ -543,7 +489,6 @@ class Music {
     this.fadeOut(fade)
   }
 
-  /** Пауза по причине (катсцена на паузе, вкладка скрыта); играет, когда причин нет */
   hold(reason: string, on: boolean) {
     if (on) this.holds.add(reason)
     else this.holds.delete(reason)
@@ -574,7 +519,6 @@ class Music {
     else element.addEventListener('error', onError, { once: true })
     return () => {
       element.removeEventListener('error', onError)
-      // тот же файл мог успеть включиться заново, пока этот затухал
       if (this.current?.id !== id) element.pause()
       stopFallback?.()
     }
@@ -605,7 +549,6 @@ class Music {
     }, fade * 1000 + 200)
   }
 
-  /** Синхронизирует контекст и файловые треки с паузами */
   private apply() {
     const ctx = this.ctx
     if (!ctx) return

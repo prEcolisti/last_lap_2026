@@ -55,7 +55,6 @@
   color: var(--color-accent-soft);
 }
 
-/* стрелки нет в пиксельном шрифте: рисуем её обычным */
 .btn__arrow {
   margin-right: 0.5em;
   font-family: var(--font-body);

@@ -42,7 +42,6 @@
   fill: var(--color-accent);
 }
 
-/* На узких экранах овал скрыт */
 @media (max-width: 720px) {
   .track {
     display: none;

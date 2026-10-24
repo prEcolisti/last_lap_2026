@@ -74,7 +74,6 @@
   color: var(--color-text-dim);
 }
 
-/* на телефоне карточки в столбик: превью слева, название справа */
 @media (max-width: 640px) {
   .places__row {
     grid-template-columns: 1fr;

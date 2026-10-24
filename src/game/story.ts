@@ -1,6 +1,5 @@
 import cruiseScheme from '../assets/clues/paper.png'
 
-/** Точка осмотра. Координаты — в пикселях сцены 320×180. */
 export interface Clue {
   id: string
   title: string
@@ -9,15 +8,11 @@ export interface Clue {
   y: number
   w: number
   h: number
-  /** Улика откроется, только когда задан этот вопрос (ключ topicKey) */
   requires?: string
-  /** Что видит детектив, пока улика закрыта */
   locked?: string
-  /** Крупный план в панели осмотра */
   image?: string
 }
 
-/** Улики на месте аварии (локация crashSite) */
 export const clues: Clue[] = [
   {
     id: 'no-skid',
@@ -57,7 +52,6 @@ export const clues: Clue[] = [
   },
 ]
 
-/** Улики в боксе команды №7 */
 export const garageClues: Clue[] = [
   {
     id: 'shift-board',
@@ -88,7 +82,6 @@ export const garageClues: Clue[] = [
   },
 ]
 
-/** Улики в VIP-ложе; листок открывается после разговора с барменом */
 export const vipBoxClues: Clue[] = [
   {
     id: 'vip-box',

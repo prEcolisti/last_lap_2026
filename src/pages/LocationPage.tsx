@@ -20,13 +20,9 @@ import './LocationPage.css'
 
 const pct = (value: number, total: number) => `${(value / total) * 100}%`
 
-/** Скорость детектива, пикселей сцены в секунду */
 const SPEED = 56
-/** С какого расстояния до улики появляется кнопка осмотра */
 const REACH = 22
-/** Кадров ходьбы в секунду */
 const STEPS_PER_SECOND = 8
-/** id цели «свидетель» среди улик */
 const NPC = 'npc'
 
 interface Drop {
@@ -43,7 +39,6 @@ function makeRain(count: number): Drop[] {
   }))
 }
 
-/** Ближайшая улика или свидетель в пределах досягаемости */
 function nearestTarget(location: Location, x: number, y: number): string | null {
   const targets: { id: string; rect: Rect }[] = location.clues.map((clue) => ({ id: clue.id, rect: clue }))
   if (location.npc) targets.push({ id: NPC, rect: location.npc.area })
@@ -79,7 +74,6 @@ function LocationScreen({ location }: { location: Location }) {
   const { npc } = location
   const npcSheet = useImage(npc?.sheet ?? '')
   const talk = useConversation(npc?.id ?? '', npc?.topics ?? [], npc?.idleMood ?? 'calm')
-  // кадры и обработчики читают свежие значения через ref
   const askedRef = useRef(talk.asked)
   const talkingRef = useRef(false)
   useEffect(() => {
@@ -101,7 +95,6 @@ function LocationScreen({ location }: { location: Location }) {
   const examine = useCallback(
     (clueId: string) => {
       setActiveId(clueId)
-      // закрытая улика: показываем подсказку, но в блокнот не пишем
       const clue = location.clues.find((item) => item.id === clueId)
       if (!clue || (clue.requires && !askedRef.current.includes(clue.requires))) return
       setExamined((current) => {

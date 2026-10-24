@@ -1,30 +1,19 @@
-/**
- * Комната допросов сверху, как локации, и документы дела крупным планом.
- * Персонажи здесь рисуются в два раза крупнее, чем на локациях.
- */
 import { drawCharacter, type Direction } from './characters.ts'
 import { glow, pixelEllipse, vignette } from './lighting.ts'
 import { metal } from './palette.ts'
 import { H, OUTLINE, W, cached, drawText, fill, offscreen, outline, rng, textWidth } from './pixels.ts'
 import { VIP_X, standsCanvas } from './scenery.ts'
 
-/** Низ стены: дальше начинается пол */
 export const WALL_BOTTOM = 58
-/** Линия ног сидящих: ноги стоят на сиденье стула */
 export const FEET = 128
-/** Где стоит тот, кто собирается сесть: перед стулом, на полу */
 export const APPROACH_Y = FEET + 18
-/** Дверь в стене слева; входящий появляется в проёме и спускается вниз */
 export const DOOR_X = 44
-// стулья стоят вплотную к торцам стола, но сидящие в стол не заходят
 export const SUSPECT_SEAT = 94
 export const DETECTIVE_SEAT = 226
 const TABLE = { x: 118, y: 96, w: 84, h: 36 }
-/** Середина столешницы: сюда падает папка с делом */
 export const TABLE_TOP = TABLE.y + 24
 const DOOR = { x: DOOR_X - 18, y: 4, w: 36, h: WALL_BOTTOM - 4 }
 
-/** Персонаж в комнате допросов: лист 32×32, увеличенный вдвое */
 export function drawPerson(ctx: CanvasRenderingContext2D, sheet: HTMLImageElement, dir: Direction, frame: number, x: number, y: number) {
   ctx.save()
   ctx.scale(2, 2)
@@ -34,7 +23,6 @@ export function drawPerson(ctx: CanvasRenderingContext2D, sheet: HTMLImageElemen
 
 function buildRoom() {
   const { canvas, ctx } = offscreen(W, H)
-  // стена, на которую смотрим сверху и чуть спереди
   fill(ctx, '#161d22', 0, 0, W, WALL_BOTTOM)
   for (let x = 0; x < W; x += 32) {
     fill(ctx, '#131a1e', x, 0, 1, WALL_BOTTOM)
@@ -44,7 +32,6 @@ function buildRoom() {
   fill(ctx, metal.light, 0, WALL_BOTTOM - 4, W, 1)
   fill(ctx, OUTLINE, 0, WALL_BOTTOM, W, 1)
 
-  // зеркальное окно в соседнюю комнату
   fill(ctx, OUTLINE, 229, 9, 74, 38)
   fill(ctx, metal.base, 230, 10, 72, 36)
   fill(ctx, '#0a0f12', 233, 13, 66, 30)
@@ -54,20 +41,17 @@ function buildRoom() {
     ctx.fillRect(264 + i, 13 + i * 2, 2, 2)
   }
 
-  // пол плиткой
   fill(ctx, '#151b20', 0, WALL_BOTTOM + 1, W, H - WALL_BOTTOM)
   for (let y = WALL_BOTTOM + 12; y < H; y += 16) fill(ctx, '#12171b', 0, y, W, 1)
   for (let x = 8; x < W; x += 24) fill(ctx, '#12171b', x, WALL_BOTTOM + 1, 1, H - WALL_BOTTOM)
   const scuffs = rng(19)
   for (let i = 0; i < 24; i++) fill(ctx, '#181f24', scuffs() * W, WALL_BOTTOM + 4 + scuffs() * (H - WALL_BOTTOM - 8), 3 + scuffs() * 6, 1)
 
-  // лампа над столом: светлое пятно на полу и на столе
   glow(ctx, TABLE.x + TABLE.w / 2, TABLE.y + TABLE.h / 2, 110, 60)
   glow(ctx, TABLE.x + TABLE.w / 2, TABLE.y + TABLE.h / 2, 70, 38)
   return canvas
 }
 
-/** Стена, пол, свет и дверь; open — насколько открыта дверь, 0..1 */
 export function drawRoom(ctx: CanvasRenderingContext2D, open: number) {
   ctx.drawImage(cached('interrogation-room', buildRoom), 0, 0)
   const door = DOOR
@@ -81,7 +65,6 @@ export function drawRoom(ctx: CanvasRenderingContext2D, open: number) {
   if (leaf > 8) fill(ctx, metal.shine, door.x + leaf - 6, door.y + 28, 3, 2)
 }
 
-/** Стул сверху: сиденье и спинка со стороны, противоположной столу */
 function chair(ctx: CanvasRenderingContext2D, x: number, backLeft: boolean) {
   const seat = { x: x - 11, y: FEET - 22, w: 22, h: 20 }
   pixelEllipse(ctx, x, FEET + 2, 14, 3, 'rgba(0, 0, 0, 0.35)')
@@ -94,7 +77,6 @@ function chair(ctx: CanvasRenderingContext2D, x: number, backLeft: boolean) {
   fill(ctx, '#4a3a2c', bx, seat.y - 14, 1, seat.h + 14)
 }
 
-/** Передний край сиденья: закрывает ноги сидящего */
 function seatLip(ctx: CanvasRenderingContext2D, x: number) {
   fill(ctx, OUTLINE, x - 12, FEET - 6, 24, 9)
   fill(ctx, '#3a2e24', x - 11, FEET - 5, 22, 6)
@@ -102,19 +84,16 @@ function seatLip(ctx: CanvasRenderingContext2D, x: number) {
   fill(ctx, '#2a2018', x - 11, FEET + 1, 22, 1)
 }
 
-/** Сидящий на стуле: персонаж и край сиденья поверх его ног */
 export function drawSeated(ctx: CanvasRenderingContext2D, sheet: HTMLImageElement, dir: Direction, x: number) {
   drawPerson(ctx, sheet, dir, 1, x, FEET)
   seatLip(ctx, x)
 }
 
-/** Стулья под сидящими: рисуются до персонажей */
 export function drawChairs(ctx: CanvasRenderingContext2D) {
   chair(ctx, SUSPECT_SEAT, true)
   chair(ctx, DETECTIVE_SEAT, false)
 }
 
-/** Стол сверху поверх сидящих: закрывает руки, лежащие на нём */
 export function drawTable(ctx: CanvasRenderingContext2D) {
   const { x, y, w, h } = TABLE
   fill(ctx, 'rgba(0, 0, 0, 0.35)', x + 3, y + h + 4, w - 2, 4)
@@ -124,7 +103,6 @@ export function drawTable(ctx: CanvasRenderingContext2D) {
   fill(ctx, '#6b5a46', x, y, 1, h)
   const grain = rng(4)
   for (let i = 0; i < 14; i++) fill(ctx, '#514233', x + 3 + grain() * (w - 20), y + 3 + grain() * (h - 6), 8 + grain() * 12, 1)
-  // передняя кромка и ножки
   fill(ctx, '#3a2e24', x, y + h, w, 5)
   fill(ctx, OUTLINE, x, y + h, w, 1)
   for (const lx of [x + 2, x + w - 7]) {
@@ -143,7 +121,6 @@ function buildFolder() {
   return outline(canvas)
 }
 
-/** Папка с делом; y — нижний край */
 export function drawFolder(ctx: CanvasRenderingContext2D, x: number, y: number) {
   const folder = cached('case-folder', buildFolder)
   ctx.drawImage(folder, Math.round(x - folder.width / 2), Math.round(y - folder.height))
@@ -168,7 +145,6 @@ function buildDocuments(fifth: HTMLImageElement) {
   drawText(ctx, header, Math.round(W / 2 - textWidth(header)), paper.y + 8, '#2a2f36', 2)
   fill(ctx, '#c62a2f', paper.x + 12, paper.y + 22, paper.w - 24, 1)
 
-  // фото: пустое кресло в ложе и «пятый механик»
   const photos = [
     { x: paper.x + 14, y: paper.y + 30 },
     { x: paper.x + 100, y: paper.y + 30 },
@@ -188,7 +164,6 @@ function buildDocuments(fifth: HTMLImageElement) {
   fill(ctx, '#e04848', photos[0].x + 39, photos[0].y + 18, 1, 17)
   for (const p of photos) fill(ctx, metal.shine, p.x + 30, p.y - 3, 12, 3)
 
-  // строки протокола
   const lines = rng(3)
   for (let row = 0; row < 7; row++) {
     const y = paper.y + 92 + row * 8
@@ -198,7 +173,6 @@ function buildDocuments(fifth: HTMLImageElement) {
   return canvas
 }
 
-/** Отпечаток печати с выпавшими пикселями, как от резины */
 function buildStamp() {
   const width = textWidth(STAMP_TEXT) * 2 + 14
   const { canvas, ctx } = offscreen(width, 26)
@@ -216,10 +190,6 @@ function buildStamp() {
   return canvas
 }
 
-/**
- * Документы крупным планом. stamp — 0 до удара печати, затем 1;
- * между 0 и 1 печать опускается, её тень уменьшается.
- */
 export function drawDocuments(ctx: CanvasRenderingContext2D, fifth: HTMLImageElement, stamp: number) {
   ctx.drawImage(cached('case-documents', () => buildDocuments(fifth)), 0, 0)
   const print = cached('case-stamp', buildStamp)

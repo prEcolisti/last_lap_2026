@@ -1,7 +1,3 @@
-/**
- * Сценарий вступительной катсцены: 12 сцен, ~95 секунд.
- * Тайминг каждой сцены правится одним числом `duration`.
- */
 import { CAR_H, carSprite, liveries, topCarSprite, wreckSprite, type CarId, type Heading } from '../game/cars.ts'
 import { drawCharacter, IDLE_FRAME, walkFrame, type Direction } from '../game/characters.ts'
 import { art } from '../game/cutsceneArt.ts'
@@ -38,7 +34,6 @@ const between = (t: number, from: number, to: number) => t >= from && t < to
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
 const easeOut = (value: number) => 1 - (1 - clamp01(value)) ** 3
 
-/** Камера, при которой VIP-ложа слева в кадре, а отбойник с шинами справа */
 const CRASH_SITE_SCROLL = Math.round((VIP_X - 60) / 0.35)
 
 function car(ctx: CanvasRenderingContext2D, id: CarId, x: number, lane: number, frame: number) {
@@ -46,7 +41,6 @@ function car(ctx: CanvasRenderingContext2D, id: CarId, x: number, lane: number, 
   ctx.drawImage(carSprite(id, frame >> 1), Math.round(x), lane - CAR_H)
 }
 
-/** Клубы дыма ступенями серого */
 function smoke(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, amount: number, seed: number) {
   const rand = rng(seed)
   for (let i = 0; i < amount; i++) {
@@ -67,7 +61,6 @@ function sparks(ctx: CanvasRenderingContext2D, x: number, y: number, frame: numb
   }
 }
 
-/** Восклицательный знак над шлемом */
 function alert(ctx: CanvasRenderingContext2D, x: number, y: number) {
   fill(ctx, OUTLINE, x - 1, y - 1, 8, 12)
   fill(ctx, '#e8c43a', x, y, 6, 10)
@@ -87,10 +80,6 @@ const grid: { id: CarId; x: number; lane: number; pace: number }[] = [
 const PIT_CAR_X = 124
 const PIT_LANE = 142
 
-/**
- * Механики в боксе: откуда бегут и где работают у машины.
- * Те, у кого ноги выше болида, стоят за ним; пятый — у кокпита.
- */
 const crew = [
   { from: 24, to: 106, feet: 130, fifth: false },
   { from: 56, to: 138, feet: 160, fifth: false },
@@ -99,7 +88,6 @@ const crew = [
   { from: 318, to: 160, feet: 128, fifth: true },
 ]
 
-/** Направление, в котором едет точка овала при убывающем угле */
 function heading(angle: number): Heading {
   const vx = Math.sin(angle) * OVAL.rx
   const vy = -Math.cos(angle) * OVAL.ry
@@ -352,7 +340,6 @@ const scenes: Scene[] = [
       drawSideTrack(ctx, { scroll: 9400, stands: { sponsorInBox: false, crowd: true } })
       drawFinishLine(ctx, 200)
       smoke(ctx, 40, TRACK_TOP - 30, t, 6, 3)
-      // клетчатый флаг у финиша
       fill(ctx, OUTLINE, 223, TRACK_TOP - 41, 3, 30)
       fill(ctx, metal.shine, 224, TRACK_TOP - 40, 1, 28)
       const wave = frame % 30 < 15 ? 0 : 1
@@ -386,13 +373,11 @@ const scenes: Scene[] = [
       ctx.beginPath()
       ctx.rect(frameX + 4, frameY + 4, 188, 100)
       ctx.clip()
-      // VIP-ложа попадает в центр снимка
       ctx.translate(0, -8)
       const scroll = (VIP_X - 140) / 0.35
       drawSideTrack(ctx, { scroll, stands: { sponsorInBox: false, crowd: true } })
       car(ctx, 'car22', 100, LANE_FAR + 2, 0)
       ctx.restore()
-      // снимок проявляется ступенями
       const develop = clamp01((t - 0.1) / 1.4)
       ctx.globalAlpha = develop < 0.25 ? 1 : develop < 0.5 ? 0.7 : develop < 0.75 ? 0.4 : develop < 1 ? 0.15 : 0
       fill(ctx, '#ffffff', frameX + 4, frameY + 4, 188, 100)
@@ -428,7 +413,6 @@ const scenes: Scene[] = [
   },
 ]
 
-/** Каждая сцена, кроме чёрного дисклеймера, заканчивается виньеткой */
 export const script: Scene[] = scenes.map((scene) =>
   scene.id === 'disclaimer'
     ? scene

@@ -2,9 +2,7 @@ import type { ReactNode } from 'react'
 import './AuthCard.css'
 
 interface AuthCardProps {
-  /** Надпись слева сверху: «Дело № 001» */
   fileLabel: string
-  /** Штамп справа сверху */
   stamp: string
   stampTone?: 'danger' | 'warning'
   title: string
