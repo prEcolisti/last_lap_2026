@@ -15,6 +15,7 @@ export interface SharedLoops {
   wind?: { stop(): void }
   rain?: { stop(): void }
   room?: { stop(): void }
+  fire?: { stop(): void }
 }
 
 export interface DrawEnv {

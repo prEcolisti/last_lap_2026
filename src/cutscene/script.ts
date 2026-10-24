@@ -1,7 +1,7 @@
 import { CAR_H, carSprite, liveries, topCarSprite, wreckSprite, type CarId, type Heading } from '../game/cars.ts'
 import { drawCharacter, IDLE_FRAME, walkFrame, type Direction } from '../game/characters.ts'
 import { art } from '../game/cutsceneArt.ts'
-import { vignette } from '../game/lighting.ts'
+import { glow, vignette } from '../game/lighting.ts'
 import { music } from '../game/music.ts'
 import { crashSite } from '../game/locations/crashSite.ts'
 import { metal } from '../game/palette.ts'
@@ -54,6 +54,34 @@ function smoke(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, a
   ctx.globalAlpha = 1
 }
 
+const FIRE_GLOW = ['rgba(224, 123, 46, 0.06)', 'rgba(224, 123, 46, 0.1)', 'rgba(232, 196, 58, 0.14)']
+
+function fire(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, t: number, frame: number, strength: number) {
+  if (strength <= 0) return
+  glow(ctx, x + width / 2, y + 2, Math.round(width * 0.9 * strength) + 6, Math.round(6 * strength) + 3, FIRE_GLOW)
+  const rand = rng(frame >> 1)
+  for (let i = 0; i < width; i += 2) {
+    const middle = Math.sin(((i + 1) / width) * Math.PI)
+    const h = Math.max(2, Math.round((4 + middle * 22 * strength) * (0.55 + rand() * 0.55)))
+    const layers: [string, number][] = [
+      ['#a8262b', 1],
+      ['#e07b2e', 0.72],
+      ['#e8c43a', 0.42],
+      ['#fff3c4', 0.16],
+    ]
+    for (const [color, k] of layers) {
+      const lh = Math.round(h * k)
+      if (lh > 0) fill(ctx, color, x + i, y - lh, 2, lh)
+    }
+  }
+  const embers = rng(23)
+  for (let i = 0; i < Math.round(10 * strength); i++) {
+    const life = (t * 0.8 + embers()) % 1
+    const ex = x + embers() * width + Math.round(Math.sin(t * 3 + i) * 3)
+    fill(ctx, life < 0.5 ? '#e8c43a' : '#e07b2e', ex, y - 12 - life * 46, 1, 1)
+  }
+}
+
 function sparks(ctx: CanvasRenderingContext2D, x: number, y: number, frame: number, amount: number) {
   const rand = rng(frame)
   for (let i = 0; i < amount; i++) {
@@ -75,6 +103,13 @@ const grid: { id: CarId; x: number; lane: number; pace: number }[] = [
   { id: 'car31', x: -16, lane: LANE_NEAR, pace: -30 },
   { id: 'car9', x: 76, lane: LANE_NEAR, pace: -20 },
   { id: 'car22', x: 168, lane: LANE_NEAR, pace: 2 },
+]
+
+const finishers: { id: CarId; at: number; lane: number; speed: number }[] = [
+  { id: 'car22', at: 1, lane: LANE_FAR, speed: 660 },
+  { id: 'car3', at: 2.4, lane: LANE_NEAR, speed: 700 },
+  { id: 'car9', at: 2.9, lane: LANE_FAR, speed: 640 },
+  { id: 'car14', at: 3.8, lane: LANE_NEAR, speed: 680 },
 ]
 
 const PIT_CAR_X = 124
@@ -309,6 +344,7 @@ const scenes: Scene[] = [
       }
       const after = t - impact
       ctx.drawImage(wreckSprite(), 188, TRACK_TOP - 14)
+      fire(ctx, 198, TRACK_TOP - 3, 32, t, frame, clamp01((after - 0.15) / 1))
       const rand = rng(17)
       for (let i = 0; i < 16; i++) {
         const vx = (rand() - 0.3) * 90
@@ -317,11 +353,11 @@ const scenes: Scene[] = [
         const py = TRACK_TOP + vy * after + 80 * after * after
         if (py < TRACK_BOTTOM + 10) fill(ctx, rand() > 0.5 ? liveries.car7.A : metal.dark, px, py, 2, 2)
       }
-      smoke(ctx, 230, TRACK_TOP - 6, t, 10, 9)
+      smoke(ctx, 222, TRACK_TOP - 22, t, 10 + Math.round(clamp01(after) * 8), 9)
     },
     shake: (t) => (between(t, 0.7, 1.3) ? 3 : 0),
     flash: (t) => (between(t, 0.7, 0.77) || between(t, 0.84, 0.9) ? 1 : 0),
-    overlay: (t) => (t > 1.2 ? { sound: '[удар. тишина]' } : {}),
+    overlay: (t) => (t > 2.2 ? { sound: '[треск пламени]' } : t > 1.2 ? { sound: '[удар]' } : {}),
     cues: [
       {
         at: 0.7,
@@ -332,6 +368,7 @@ const scenes: Scene[] = [
           audio.crash()
         },
       },
+      { at: 0.95, run: (audio, loops) => (loops.fire = audio.fire()) },
     ],
   },
   {
@@ -350,12 +387,21 @@ const scenes: Scene[] = [
           fill(ctx, dark ? '#141a1e' : '#c9d0d2', 225 + fx, TRACK_TOP - 40 + fy + (fx > 5 ? wave : 0), 2, 2)
         }
       }
-      car(ctx, 'car22', -80 + t * 52, LANE_FAR, t < 7.6 ? frame >> 1 : 0)
+      for (const pass of [...finishers].sort((x, y) => x.lane - y.lane)) {
+        const x = -80 + (t - pass.at) * pass.speed
+        if (x > -80 && x < W) car(ctx, pass.id, x, pass.lane, frame)
+      }
     },
     cues: [
+      {
+        at: 0,
+        run: (_audio, loops) => {
+          loops.fire?.stop()
+          loops.fire = undefined
+        },
+      },
       { at: 0.4, run: (audio, loops) => (loops.wind = audio.wind()) },
-      { at: 0.8, run: (audio) => audio.engineSet(0.3, 0.035, 1) },
-      { at: 7.2, run: (audio) => audio.engineStop() },
+      ...finishers.map((pass) => ({ at: pass.at + 0.1, run: (audio: GameAudio) => audio.passBy() })),
     ],
     overlay: (t) => (t < 3 ? { sound: '[трибуны молчат]' } : {}),
   },

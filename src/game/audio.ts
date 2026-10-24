@@ -267,6 +267,27 @@ export class GameAudio {
     return this.noiseLoop(this.filter('bandpass', 120, 4), 0.05, 1.5)
   }
 
+  fire(): Loop {
+    const roar = this.noiseLoop(this.filter('lowpass', 520), 0.11, 0.8)
+    const timer = window.setInterval(() => {
+      if (this.ctx.state !== 'running') return
+      for (let i = 0; i < 3; i++) {
+        if (Math.random() < 0.55) {
+          window.setTimeout(() => this.burst(this.filter('highpass', 2000 + Math.random() * 3000), 0.04 + Math.random() * 0.09, 0.002, 0.004, 0.03), Math.random() * 180)
+        }
+      }
+    }, 200)
+    const loop: Loop = {
+      stop: () => {
+        window.clearInterval(timer)
+        if (this.loops.has(roar)) roar.stop()
+        this.loops.delete(loop)
+      },
+    }
+    this.loops.add(loop)
+    return loop
+  }
+
   crowd() {
     return this.noiseLoop(this.filter('bandpass', 700, 0.6), 0.06, 2)
   }
