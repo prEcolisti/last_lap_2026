@@ -14,6 +14,8 @@ export function offscreen(width: number, height: number) {
 
 const cache = new Map<string, HTMLCanvasElement>()
 
+if (import.meta.hot) import.meta.hot.on('vite:beforeUpdate', () => cache.clear())
+
 export function cached(key: string, make: () => HTMLCanvasElement): HTMLCanvasElement {
   let hit = cache.get(key)
   if (!hit) {
