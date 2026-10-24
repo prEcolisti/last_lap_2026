@@ -157,11 +157,11 @@ function buildDocuments(fifth: HTMLImageElement) {
   ctx.drawImage(stands, VIP_X - 12, 8, 70, 42, photos[0].x + 2, photos[0].y + 2, 70, 42)
   fill(ctx, '#0d1418', photos[1].x + 2, photos[1].y + 2, 70, 42)
   ctx.drawImage(fifth, 32, 0, 32, 32, photos[1].x + 21, photos[1].y + 4, 32, 32)
-  fill(ctx, '#c62a2f', photos[0].x + 33, photos[0].y + 22, 1, 1)
-  fill(ctx, '#e04848', photos[0].x + 26, photos[0].y + 18, 14, 1)
-  fill(ctx, '#e04848', photos[0].x + 26, photos[0].y + 34, 14, 1)
-  fill(ctx, '#e04848', photos[0].x + 26, photos[0].y + 18, 1, 17)
-  fill(ctx, '#e04848', photos[0].x + 39, photos[0].y + 18, 1, 17)
+  const seat = { x: photos[0].x + 40, y: photos[0].y + 25, w: 16, h: 19 }
+  fill(ctx, '#e04848', seat.x, seat.y, seat.w, 1)
+  fill(ctx, '#e04848', seat.x, seat.y + seat.h - 1, seat.w, 1)
+  fill(ctx, '#e04848', seat.x, seat.y, 1, seat.h)
+  fill(ctx, '#e04848', seat.x + seat.w - 1, seat.y, 1, seat.h)
   for (const p of photos) fill(ctx, metal.shine, p.x + 30, p.y - 3, 12, 3)
 
   const lines = rng(3)

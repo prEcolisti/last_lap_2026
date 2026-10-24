@@ -6,7 +6,7 @@ import { music } from '../game/music.ts'
 import { crashSite } from '../game/locations/crashSite.ts'
 import { metal } from '../game/palette.ts'
 import { raceAt } from '../game/race.ts'
-import { OUTLINE } from '../game/pixels.ts'
+import { OUTLINE, drawNumber, drawText, textWidth } from '../game/pixels.ts'
 import {
   H,
   LANE_FAR,
@@ -78,6 +78,83 @@ function fire(ctx: CanvasRenderingContext2D, x: number, y: number, width: number
     const life = (t * 0.8 + embers()) % 1
     const ex = x + embers() * width + Math.round(Math.sin(t * 3 + i) * 3)
     fill(ctx, life < 0.5 ? '#e8c43a' : '#e07b2e', ex, y - 12 - life * 46, 1, 1)
+  }
+}
+
+const SCREEN = '#06100b'
+const SCREEN_LINE = '#0c1c14'
+const AMBER = '#e0a92e'
+const GREEN = '#3dbf72'
+const RED = '#e04848'
+
+function panel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  fill(ctx, OUTLINE, x - 2, y - 2, w + 4, h + 4)
+  fill(ctx, metal.base, x - 1, y - 1, w + 2, h + 2)
+  fill(ctx, metal.light, x - 1, y - 1, w + 2, 1)
+  fill(ctx, SCREEN, x, y, w, h)
+  for (let gy = y + 3; gy < y + h; gy += 4) fill(ctx, SCREEN_LINE, x, gy, w, 1)
+}
+
+function bar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, value: number, color: string) {
+  fill(ctx, '#14261c', x, y, w, 5)
+  fill(ctx, color, x, y, Math.round(w * value), 5)
+  for (let i = x + 4; i < x + w; i += 5) fill(ctx, SCREEN, i, y, 1, 5)
+}
+
+function telemetry(ctx: CanvasRenderingContext2D, t: number, frame: number) {
+  const blink = frame % 16 < 8
+  const left = { x: 10, y: 112 }
+  panel(ctx, left.x, left.y, 94, 60)
+  drawText(ctx, 'ГАЗ', left.x + 4, left.y + 4, GREEN)
+  bar(ctx, left.x + 45, left.y + 4, 25, 1, AMBER)
+  drawNumber(ctx, '100', left.x + 74, left.y + 4, AMBER)
+  drawText(ctx, 'ТОРМОЗ', left.x + 4, left.y + 13, GREEN)
+  bar(ctx, left.x + 45, left.y + 13, 25, 0, RED)
+  if (blink) {
+    fill(ctx, RED, left.x + 44, left.y + 12, 27, 1)
+    fill(ctx, RED, left.x + 44, left.y + 18, 27, 1)
+  }
+  drawNumber(ctx, '0', left.x + 74, left.y + 13, RED)
+  drawNumber(ctx, String(372 + Math.floor(t * 1.5)), left.x + 4, left.y + 25, '#e8ece9', 2)
+  drawText(ctx, 'КМ', left.x + 32, left.y + 30, GREEN)
+  drawText(ctx, 'Ч', left.x + 46, left.y + 30, GREEN)
+  drawText(ctx, 'ОБОРОТЫ', left.x + 4, left.y + 40, GREEN)
+  for (let i = 0; i < 12; i++) {
+    const color = i < 6 ? GREEN : i < 9 ? AMBER : RED
+    const lit = i < 9 || (frame + i) % 6 < 4
+    fill(ctx, lit ? color : '#14261c', left.x + 4 + i * 7, left.y + 49, 5, 4)
+  }
+
+  const right = { x: 216, y: 112 }
+  panel(ctx, right.x, right.y, 94, 60)
+  drawText(ctx, 'ШИНЫ', right.x + 4, right.y + 4, GREEN)
+  fill(ctx, '#2a323a', right.x + 12, right.y + 14, 8, 22)
+  fill(ctx, '#c62a2f', right.x + 13, right.y + 15, 6, 20)
+  const heat = clamp01(0.7 + t / 20)
+  const tyre = (x: number, y: number, k: number) => fill(ctx, k > 0.85 ? RED : AMBER, x, y, 4, 7)
+  tyre(right.x + 6, right.y + 14, heat - 0.1)
+  tyre(right.x + 22, right.y + 14, heat - 0.1)
+  tyre(right.x + 6, right.y + 28, heat)
+  tyre(right.x + 22, right.y + 28, heat)
+  const engine = clamp01(0.92 + t / 60)
+  drawText(ctx, 'ТЕМП', right.x + 42, right.y + 4, GREEN)
+  bar(ctx, right.x + 42, right.y + 12, 46, engine, blink ? RED : AMBER)
+  drawNumber(ctx, String(126 + Math.floor(t * 2)), right.x + 42, right.y + 21, RED)
+  drawNumber(ctx, '8', right.x + 72, right.y + 20, '#e8ece9', 3)
+  if (blink) {
+    const warning = 'НЕТ ТОРМОЗА'
+    fill(ctx, '#3a0d10', right.x + 2, right.y + 43, 90, 13)
+    drawText(ctx, warning, right.x + Math.round((94 - textWidth(warning)) / 2), right.y + 47, RED)
+  }
+
+  if (t > 5.7) {
+    const noise = rng(frame)
+    for (const p of [left, right]) {
+      for (let i = 0; i < 9; i++) {
+        const y = p.y + Math.floor(noise() * 60)
+        fill(ctx, noise() > 0.5 ? '#2b333b' : SCREEN, p.x, y, 94, 1 + Math.floor(noise() * 3))
+      }
+    }
   }
 }
 
@@ -297,8 +374,9 @@ const scenes: Scene[] = [
   {
     id: 'radio',
     duration: 8,
-    draw: ({ ctx, t }) => {
+    draw: ({ ctx, t, frame }) => {
       drawPitWall(ctx, clamp01(0.8 + t / 40), t)
+      telemetry(ctx, t, frame)
       const engineer = art('engineer')
       ctx.drawImage(engineer, 112, 26, 96, 96)
       fill(ctx, OUTLINE, 104, 103, 112, 1)
