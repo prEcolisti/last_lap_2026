@@ -200,12 +200,17 @@ function wrongEnding(sheet: ArtId): Scene[] {
     },
     {
       id: 'wrong',
-      duration: 7,
+      duration: 9,
       draw: black,
-      overlay: (t) => (t > 0.6 ? { caption: { text: 'Ты ошибся.', size: 'xl' } } : {}),
+      overlay: (t) => (between(t, 0.6, 5.5) ? { caption: { text: 'Ты ошибся.', size: 'xl' } } : {}),
       cues: [
-        { at: 0.6, run: (audio) => audio.wrongSting() },
-        { at: 1.4, run: () => music.play('sad') },
+        {
+          at: 0.6,
+          run: (audio) => {
+            audio.wrongSting()
+            music.play('sad', true, 0.4)
+          },
+        },
       ],
     },
   ]

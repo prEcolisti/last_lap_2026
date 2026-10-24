@@ -1,15 +1,14 @@
 export type TrackId = 'menu' | 'tension' | 'interrogation' | 'premonition' | 'garage' | 'jazz' | 'sad' | 'victory'
 
-type SynthId = Exclude<TrackId, 'menu' | 'premonition'>
+type SynthId = Exclude<TrackId, 'premonition'>
 
 const files: Partial<Record<TrackId, { src: string; fallback: SynthId }>> = {
-  menu: { src: 'music/once-upon-a-time.mp3', fallback: 'sad' },
   premonition: { src: 'music/premonition.mp3', fallback: 'tension' },
 }
 
 const VOLUME = 0.75
 const FADE = 1.5
-const LEVELS: Record<SynthId, number> = { tension: 1.7, interrogation: 3.5, garage: 4, jazz: 2.6, sad: 3.8, victory: 5.5 }
+const LEVELS: Record<SynthId, number> = { menu: 2.7, tension: 1.7, interrogation: 3.5, garage: 4, jazz: 2.6, sad: 3.8, victory: 5.5 }
 
 interface Playing {
   id: TrackId
@@ -311,6 +310,65 @@ function jazz(kit: Kit) {
   })
 }
 
+function menu(kit: Kit) {
+  const sixteenth = 60 / 104 / 4
+  const bars = [
+    { root: 38, chord: [62, 65, 69] },
+    { root: 34, chord: [58, 62, 65] },
+    { root: 36, chord: [60, 64, 67] },
+    { root: 33, chord: [61, 64, 69] },
+    { root: 38, chord: [62, 65, 69] },
+    { root: 34, chord: [58, 62, 65] },
+    { root: 43, chord: [55, 58, 62] },
+    { root: 33, chord: [61, 64, 69] },
+  ]
+  const melody: [number, number, number, number][] = [
+    [0, 0, 74, 1], [0, 1, 77, 0.5], [0, 1.5, 81, 0.5], [0, 2, 79, 1], [0, 3, 77, 1],
+    [1, 0, 77, 1.5], [1, 1.5, 74, 0.5], [1, 2, 76, 1], [1, 3, 77, 1],
+    [2, 0, 76, 1], [2, 1, 79, 0.5], [2, 1.5, 76, 0.5], [2, 2, 72, 2],
+    [3, 0, 73, 1], [3, 1, 76, 1], [3, 2, 69, 2],
+    [4, 0, 74, 0.5], [4, 0.5, 76, 0.5], [4, 1, 77, 1], [4, 2, 81, 1], [4, 3, 86, 1],
+    [5, 0, 84, 1], [5, 1, 82, 0.5], [5, 1.5, 81, 0.5], [5, 2, 77, 2],
+    [6, 0, 79, 1], [6, 1, 82, 1], [6, 2, 81, 0.5], [6, 2.5, 79, 0.5], [6, 3, 77, 1],
+    [7, 0, 76, 1], [7, 1, 73, 1], [7, 2, 69, 1],
+  ]
+  return sequence(kit, (step, at) => {
+    const barIndex = Math.floor(step / 16) % bars.length
+    const cycle = Math.floor(step / 128)
+    const inBar = step % 16
+    const { root, chord } = bars[barIndex]
+
+    if (inBar % 2 === 0) {
+      const octave = [0, 0, 12, 0, 0, 12, 0, 7][inBar / 2]
+      note(kit, 'triangle', midi(root + octave), at, sixteenth * 1.8, 0.14, { filter: 1200 })
+      note(kit, 'square', midi(root + octave + 12), at, sixteenth * 1.2, 0.012, { filter: 900 })
+    }
+
+    const arp = chord[[0, 1, 2, 1][inBar % 4]] + 12
+    note(kit, 'square', midi(arp), at, sixteenth * 0.9, cycle === 0 && barIndex < 2 ? 0.008 : 0.013, { attack: 0.004, filter: 2600 })
+
+    if (cycle > 0 || barIndex >= 2) {
+      if (inBar === 0 || inBar === 8) thump(kit, at, 120, 45, 0.22, 0.22)
+      if (inBar === 4 || inBar === 12) hiss(kit, 'bandpass', 1800, at, 0.12, 0.09, 1.2)
+      if (inBar % 2 === 0) hiss(kit, 'highpass', 7500, at, 0.03, inBar % 4 === 2 ? 0.03 : 0.018)
+    }
+
+    if (cycle % 2 === 1 && inBar % 2 === 0) {
+      const position = inBar / 4
+      for (const [bar, start, pitch, length] of melody) {
+        if (bar !== barIndex || start !== position) continue
+        note(kit, 'square', midi(pitch), at, sixteenth * 4 * length * 0.92, 0.035, {
+          attack: 0.01,
+          filter: 3200,
+          vibrato: length >= 1.5 ? 4 : 0,
+        })
+        note(kit, 'triangle', midi(pitch), at + sixteenth * 3, sixteenth * 4 * length * 0.8, 0.012, { attack: 0.01 })
+      }
+    }
+    return sixteenth
+  })
+}
+
 function sad(kit: Kit) {
   const beat = 60 / 66
   const chords = [
@@ -412,7 +470,7 @@ function victory(kit: Kit) {
   })
 }
 
-const synths: Record<SynthId, (kit: Kit) => () => void> = { tension, interrogation, garage, jazz, sad, victory }
+const synths: Record<SynthId, (kit: Kit) => () => void> = { menu, tension, interrogation, garage, jazz, sad, victory }
 
 class Music {
   private ctx: AudioContext | null = null
@@ -447,7 +505,7 @@ class Music {
     return ctx
   }
 
-  play(id: TrackId, restart = false) {
+  play(id: TrackId, restart = false, fade = FADE) {
     if (this.current?.id === id && !restart) return
     if (!this.ctx && navigator.userActivation?.hasBeenActive === false) {
       if (this.pending === null) {
@@ -470,10 +528,10 @@ class Music {
     } catch {
       return
     }
-    this.fadeOut(FADE)
+    this.fadeOut(fade)
     const gain = ctx.createGain()
     gain.gain.setValueAtTime(0.0001, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(1, ctx.currentTime + FADE)
+    gain.gain.exponentialRampToValueAtTime(1, ctx.currentTime + fade)
     gain.connect(this.master!)
     const stop = this.start(id, gain)
     this.current = { id, gain, stop }

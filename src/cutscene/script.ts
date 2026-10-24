@@ -251,7 +251,8 @@ const scenes: Scene[] = [
     draw: ({ ctx, t, frame }) => {
       const scroll = 6000 + 520 * t + (26 * t * t * t) / 3
       drawSideTrack(ctx, { scroll, stands: { sponsorInBox: false, crowd: true } })
-      if (between(t, 1.5, 6)) car(ctx, 'car22', 120 - (t - 1.5) * 60, LANE_FAR, frame)
+      const rival = W + 4 - (t - 1) * 90
+      if (t > 1 && rival > -80) car(ctx, 'car22', rival, LANE_FAR, frame)
       const x = 116 + Math.round(t * 2)
       car(ctx, 'car7', x, LANE_NEAR, frame)
       if (t > 3.5) smoke(ctx, x + 22, LANE_NEAR - 16, t, Math.round((t - 3.5) * 3), 5)
