@@ -1,24 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { authApi, type Credentials, type User } from '../api/auth.ts'
+import { syncProgress } from '../game/progress.ts'
 import { AuthContext, type AuthContextValue } from './AuthContext.ts'
-
-const TOKEN_KEY = 'last-lap:token'
-
-function readToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY)
-  } catch {
-    return null
-  }
-}
-
-function writeToken(token: string | null) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
-  } catch {
-  }
-}
+import { readToken, writeToken } from './token.ts'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -30,7 +14,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     authApi
       .me(token)
-      .then((restored) => {
+      .then(async (restored) => {
+        await syncProgress(restored.id, token)
         if (!cancelled) setUser(restored)
       })
       .catch(() => {
@@ -47,12 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (credentials: Credentials) => {
     const { token, user: authorized } = await authApi.login(credentials)
     writeToken(token)
+    await syncProgress(authorized.id, token)
     setUser(authorized)
   }, [])
 
   const register = useCallback(async (credentials: Credentials) => {
     const { token, user: created } = await authApi.register(credentials)
     writeToken(token)
+    await syncProgress(created.id, token)
     setUser(created)
   }, [])
 

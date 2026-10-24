@@ -1,3 +1,6 @@
+import { API_URL, request } from '../api/http.ts'
+import { readToken } from '../auth/token.ts'
+
 export interface Progress {
   introSeen: boolean
   examined: string[]
@@ -16,11 +19,46 @@ export function loadProgress(userId: string): Progress {
   }
 }
 
+function writeProgress(userId: string, progress: Progress) {
+  try {
+    localStorage.setItem(key(userId), JSON.stringify(progress))
+  } catch {
+    return
+  }
+}
+
+let outbox: Promise<unknown> = Promise.resolve()
+
+function pushProgress(patch: Partial<Progress>) {
+  const token = readToken()
+  if (!API_URL || !token) return
+  outbox = outbox.then(() => request<Progress>('/progress', { method: 'PUT', body: patch, token }).catch(() => undefined))
+}
+
 export function saveProgress(userId: string, patch: Partial<Progress>): Progress {
   const next = { ...loadProgress(userId), ...patch }
-  try {
-    localStorage.setItem(key(userId), JSON.stringify(next))
-  } catch {
-  }
+  writeProgress(userId, next)
+  pushProgress(patch)
   return next
+}
+
+const union = (a: string[], b: string[]) => [...new Set([...a, ...b])]
+
+export async function syncProgress(userId: string, token: string) {
+  if (!API_URL) return
+  try {
+    const server = await request<Progress>('/progress', { token })
+    const local = loadProgress(userId)
+    const merged: Progress = {
+      introSeen: server.introSeen || local.introSeen,
+      examined: union(server.examined, local.examined),
+      asked: union(server.asked, local.asked),
+    }
+    writeProgress(userId, merged)
+    if (JSON.stringify(merged) !== JSON.stringify(server)) {
+      await request<Progress>('/progress', { method: 'PUT', body: merged, token })
+    }
+  } catch {
+    return
+  }
 }
