@@ -1,0 +1,13 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Backups may contain player data and password hashes
+backups/*
+!backups/.gitkeep
+*.dump
+
+# Misc
+*.log
+.DS_Store

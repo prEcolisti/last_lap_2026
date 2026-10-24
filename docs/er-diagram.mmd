@@ -1,0 +1,46 @@
+erDiagram
+    users ||--o{ game_saves : "owns (RESTRICT)"
+    game_cases ||--o{ game_saves : "played in (RESTRICT)"
+    users ||--o{ sessions : "has (RESTRICT)"
+
+    users {
+        uuid id PK
+        text nickname "unique case-insensitively, 3-32 [A-Za-z0-9_]"
+        text password_hash "opaque, never plaintext"
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    game_cases {
+        smallint id PK
+        text slug UK "e.g. case-001"
+        text title
+        text description
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    game_saves {
+        bigint id PK
+        uuid user_id FK
+        smallint game_case_id FK
+        jsonb progress "introSeen, examined[], asked[]"
+        smallint schema_version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    sessions {
+        uuid id PK
+        uuid user_id FK
+        text token_hash UK "sha256 hex of bearer token"
+        timestamptz created_at
+        timestamptz expires_at
+        timestamptz revoked_at
+    }
+    schema_migrations {
+        text version PK
+        text name
+        text checksum
+        timestamptz applied_at
+        text applied_by
+    }

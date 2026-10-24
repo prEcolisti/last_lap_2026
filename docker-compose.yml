@@ -1,0 +1,66 @@
+# Standalone PostgreSQL for "The Last Lap". Contains NO frontend/backend services.
+#
+#   docker compose up -d --wait postgres                      # start + wait until healthy
+#   docker compose run --rm tools bash scripts/migrate.sh up  # apply migrations (no host psql needed)
+#   docker compose down                                       # stop (data is kept in the named volume)
+#   docker compose down -v                                    # stop AND DELETE ALL DATA
+
+name: last-lap-database
+
+x-credentials: &credentials
+  POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+  POSTGRES_SUPERUSER: ${POSTGRES_SUPERUSER:?Set POSTGRES_SUPERUSER in .env}
+  POSTGRES_SUPERUSER_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?Set POSTGRES_SUPERUSER_PASSWORD in .env}
+  LAST_LAP_MIGRATOR_USER: ${LAST_LAP_MIGRATOR_USER:?Set LAST_LAP_MIGRATOR_USER in .env}
+  LAST_LAP_MIGRATOR_PASSWORD: ${LAST_LAP_MIGRATOR_PASSWORD:?Set LAST_LAP_MIGRATOR_PASSWORD in .env}
+  LAST_LAP_APP_USER: ${LAST_LAP_APP_USER:?Set LAST_LAP_APP_USER in .env}
+  LAST_LAP_APP_PASSWORD: ${LAST_LAP_APP_PASSWORD:?Set LAST_LAP_APP_PASSWORD in .env}
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17}
+    restart: unless-stopped
+    environment:
+      <<: *credentials
+      # Variables understood by the official image (create the superuser + empty database)
+      POSTGRES_USER: ${POSTGRES_SUPERUSER}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+    # log_statement=none keeps CREATE/ALTER ROLE ... PASSWORD out of the server log.
+    command: ["postgres", "-c", "log_statement=none", "-c", "password_encryption=scram-sha-256"]
+    ports:
+      - "${POSTGRES_BIND_ADDRESS:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - last_lap_pgdata:/var/lib/postgresql/data
+      # Runs once, on first start of an EMPTY volume: creates the app/migrator roles.
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+      - ./database/bootstrap.sql:/bootstrap/bootstrap.sql:ro
+    healthcheck:
+      # -h 127.0.0.1 forces TCP: the temporary init-time server only listens on a unix socket,
+      # so "healthy" is only reported once initialisation has finished.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  # One-shot helper with psql/pg_dump/pg_restore inside, so the host needs no PostgreSQL client:
+  #   docker compose run --rm tools bash scripts/migrate.sh status
+  tools:
+    image: ${POSTGRES_IMAGE:-postgres:17}
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *credentials
+      POSTGRES_HOST: postgres   # service name on the compose network
+      POSTGRES_PORT: "5432"     # container-internal port, not the published host port
+      LAST_LAP_ENV_LOADED: "1"  # scripts must not source the host-oriented .env
+    working_dir: /work
+    entrypoint: []
+    command: ["bash", "scripts/migrate.sh", "status"]
+    volumes:
+      - ./:/work
+
+volumes:
+  last_lap_pgdata:
