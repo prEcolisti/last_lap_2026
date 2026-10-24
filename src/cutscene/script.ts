@@ -1,16 +1,16 @@
-import { CAR_H, carSprite, liveries, topCarSprite, wreckSprite, type CarId, type Heading } from '../game/cars.ts'
+import { CAR_H, carSprite, liveries, topCarSprite, wreckSprite, type CarId } from '../game/cars.ts'
 import { drawCharacter, IDLE_FRAME, walkFrame, type Direction } from '../game/characters.ts'
 import { art } from '../game/cutsceneArt.ts'
 import { glow, vignette } from '../game/lighting.ts'
 import { music } from '../game/music.ts'
 import { crashSite } from '../game/locations/crashSite.ts'
 import { metal } from '../game/palette.ts'
+import { raceAt } from '../game/race.ts'
 import { OUTLINE } from '../game/pixels.ts'
 import {
   H,
   LANE_FAR,
   LANE_NEAR,
-  OVAL,
   TRACK_BOTTOM,
   TRACK_TOP,
   VIP_X,
@@ -24,7 +24,6 @@ import {
   drawTopTrack,
   drawTyreWall,
   fill,
-  ovalPoint,
   rng,
 } from '../game/scenery.ts'
 import type { GameAudio } from '../game/audio.ts'
@@ -123,13 +122,6 @@ const crew = [
   { from: 318, to: 160, feet: 128, fifth: true },
 ]
 
-function heading(angle: number): Heading {
-  const vx = Math.sin(angle) * OVAL.rx
-  const vy = -Math.cos(angle) * OVAL.ry
-  if (Math.abs(vx) > Math.abs(vy)) return vx > 0 ? 'right' : 'left'
-  return vy > 0 ? 'down' : 'up'
-}
-
 const scenes: Scene[] = [
   {
     id: 'disclaimer',
@@ -192,14 +184,11 @@ const scenes: Scene[] = [
       const local = t % 6
       if (local < 4) {
         drawTopTrack(ctx)
-        const lead = Math.PI / 2 - (t / 6) * Math.PI * 2
-        const order: CarId[] = ['car7', 'car22', 'car3', 'car9', 'car14', 'car31']
-        order.forEach((id, i) => {
-          const angle = lead + i * 0.22 + (i > 1 ? i * 0.04 : 0)
-          const p = ovalPoint(angle)
-          const sprite = topCarSprite(id, heading(angle))
-          ctx.drawImage(sprite, p.x - (sprite.width >> 1), p.y - (sprite.height >> 1))
-        })
+        const placed = [...raceAt(t)].sort((a, b) => a.y - b.y)
+        for (const { id, x, y, angle } of placed) {
+          const sprite = topCarSprite(id, angle)
+          ctx.drawImage(sprite, Math.round(x) - (sprite.width >> 1), Math.round(y) - (sprite.height >> 1))
+        }
       } else {
         drawSideTrack(ctx, { scroll: 2000 + t * 40, stands: { sponsorInBox: true, crowd: true } })
         const pass = local - 4

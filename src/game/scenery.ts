@@ -1,3 +1,4 @@
+import { KERB, ROAD_HALF, circuit, nearest } from './circuit.ts'
 import { cone, glow, pixelEllipse } from './lighting.ts'
 import { asphalt, crowdColors, grass, kerb, lamp, metal, night } from './palette.ts'
 import { H, OUTLINE, W, cached, drawNumber, fill, mix, offscreen, outline, rng } from './pixels.ts'
@@ -293,46 +294,58 @@ export function drawFinishLine(ctx: CanvasRenderingContext2D, x: number) {
   ctx.drawImage(arch, x - 9, TRACK_TOP - 50)
 }
 
-export const OVAL = { cx: 160, cy: 96, rx: 118, ry: 56 }
-
-export function ovalPoint(angle: number) {
-  return {
-    x: Math.round(OVAL.cx + Math.cos(angle) * OVAL.rx),
-    y: Math.round(OVAL.cy + Math.sin(angle) * OVAL.ry),
-  }
-}
-
 function buildTopTrack() {
   const { canvas, ctx } = offscreen(W, H)
   const image = ctx.createImageData(W, H)
-  const rand = rng(3)
-  const put = (x: number, y: number, color: string) => {
-    const value = parseInt(color.slice(1), 16)
-    const o = (y * W + x) * 4
-    image.data[o] = value >> 16
-    image.data[o + 1] = (value >> 8) & 255
-    image.data[o + 2] = value & 255
-    image.data[o + 3] = 255
+  const distance = new Float32Array(W * H).fill(Infinity)
+  const owner = new Int32Array(W * H)
+  const reach = ROAD_HALF + KERB + 2
+  circuit.points.forEach((point, i) => {
+    for (let y = Math.floor(point.y - reach); y <= point.y + reach; y++) {
+      for (let x = Math.floor(point.x - reach); x <= point.x + reach; x++) {
+        if (x < 0 || y < 0 || x >= W || y >= H) continue
+        const d = Math.hypot(x + 0.5 - point.x, y + 0.5 - point.y)
+        const o = y * W + x
+        if (d < distance[o]) {
+          distance[o] = d
+          owner[o] = i
+        }
+      }
+    }
+  })
+  const corner = (i: number) => {
+    for (let k = -10; k <= 10; k += 2) if (Math.abs(circuit.points[(i + k + circuit.length) % circuit.length].curvature) > 0.022) return true
+    return false
   }
-  const { cx, cy, rx, ry } = OVAL
+  const rand = rng(3)
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const nx = (x + 0.5 - cx) / rx
-      const ny = (y + 0.5 - cy) / ry
-      const f = nx * nx + ny * ny - 1
-      const gradient = 2 * Math.hypot(nx / rx, ny / ry)
-      const d = f / gradient
-      const angle = Math.atan2(ny, nx)
+      const o = y * W + x
+      const d = distance[o]
+      const i = owner[o]
       const noise = rand()
       let color = noise > 0.92 ? grass.light : noise < 0.08 ? grass.dark : grass.base
-      if (Math.abs(d) < 7) color = noise > 0.9 ? asphalt.light : noise < 0.1 ? asphalt.dark : asphalt.base
-      if (Math.abs(d) >= 7 && Math.abs(d) < 9) color = Math.floor(((angle + Math.PI) * 60) / Math.PI) % 2 ? kerb.red : kerb.white
-      if (Math.abs(d) >= 9 && Math.abs(d) < 10) color = OUTLINE
-      if (Math.abs(d) < 0.5 && Math.floor(((angle + Math.PI) * 40) / Math.PI) % 2) color = asphalt.line
-      put(x, y, color)
+      if (d < ROAD_HALF) {
+        color = noise > 0.9 ? asphalt.light : noise < 0.1 ? asphalt.dark : asphalt.base
+        const point = circuit.points[i]
+        const side = -(x + 0.5 - point.x) * Math.sin(point.angle) + (y + 0.5 - point.y) * Math.cos(point.angle)
+        if (side > -1 && side <= 0 && !corner(i) && Math.floor(i / 6) % 2) color = asphalt.line
+      } else if (d < ROAD_HALF + KERB) {
+        if (corner(i)) color = Math.floor(i / 4) % 2 ? kerb.red : kerb.white
+        else if (d < ROAD_HALF + 1) color = '#8a96a0'
+      } else if (d < ROAD_HALF + KERB + 1 && corner(i)) {
+        color = OUTLINE
+      }
+      const value = parseInt(color.slice(1), 16)
+      image.data[o * 4] = value >> 16
+      image.data[o * 4 + 1] = (value >> 8) & 255
+      image.data[o * 4 + 2] = value & 255
+      image.data[o * 4 + 3] = 255
     }
   }
   ctx.putImageData(image, 0, 0)
+
+  const clear = (x: number, y: number, margin: number) => nearest(x, y).distance > ROAD_HALF + KERB + margin
 
   fill(ctx, OUTLINE, 89, 9, 142, 22)
   for (let y = 10; y < 30; y += 2) {
@@ -350,20 +363,23 @@ function buildTopTrack() {
     fill(ctx, lamp.amber, x + 2, 166, 5, 1)
   }
 
-  for (let y = 143; y < 158; y += 2) {
+  for (let y = 141; y < 156; y += 2) {
     fill(ctx, '#c9d0d2', 160, y, 2, 2)
     fill(ctx, '#141a1e', 162, y, 2, 2)
   }
 
   const trees = rng(5)
-  for (const [tx, ty] of [[12, 14], [26, 8], [300, 16], [288, 30], [10, 160], [306, 150], [296, 166]]) {
+  const spots: [number, number][] = [[12, 14], [26, 8], [306, 12], [10, 160], [306, 160], [296, 172], [140, 110], [190, 116], [100, 96], [16, 92], [270, 64], [228, 124], [70, 88]]
+  for (const [tx, ty] of spots) {
     const r = 6 + Math.round(trees() * 3)
+    if (!clear(tx, ty, r)) continue
     pixelEllipse(ctx, tx, ty, r + 1, r + 1, OUTLINE)
     pixelEllipse(ctx, tx, ty, r, r, '#0f1d17')
     pixelEllipse(ctx, tx - 2, ty - 2, r - 3, r - 3, '#16271f')
   }
 
-  for (const [lx, ly] of [[60, 40], [260, 40], [60, 150], [260, 150]]) {
+  for (const [lx, ly] of [[60, 24], [262, 160], [120, 128], [210, 46], [16, 50], [310, 100]] as [number, number][]) {
+    if (!clear(lx, ly, 3)) continue
     glow(ctx, lx, ly, 34, 22)
     fill(ctx, OUTLINE, lx - 2, ly - 2, 5, 5)
     fill(ctx, lamp.warm, lx - 1, ly - 1, 3, 3)

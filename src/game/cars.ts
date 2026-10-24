@@ -177,10 +177,11 @@ export function wreckSprite() {
   return cached('wreck', buildWreck)
 }
 
-export type Heading = 'right' | 'left' | 'down' | 'up'
+const TOP_TURN = (Math.PI * 2) / 32
 
-export function topCarSprite(id: CarId, heading: Heading) {
-  return cached(`top-${id}-${heading}`, () => {
+export function topCarSprite(id: CarId, angle: number) {
+  const step = ((Math.round(angle / TOP_TURN) % 32) + 32) % 32
+  return cached(`top-${id}-${step}`, () => {
     const livery = liveries[id]
     const flat = offscreen(9, 6)
     fill(flat.ctx, livery.C, 1, 1, 1, 4)
@@ -188,13 +189,25 @@ export function topCarSprite(id: CarId, heading: Heading) {
     fill(flat.ctx, mix(livery.A, '#ffffff', 0.25), 2, 1, 5, 1)
     fill(flat.ctx, livery.H, 4, 2, 2, 2)
     fill(flat.ctx, livery.C, 7, 2, 1, 2)
-    outline(flat.canvas)
-    if (heading === 'right') return flat.canvas
-    const vertical = heading === 'up' || heading === 'down'
-    const { canvas, ctx } = offscreen(vertical ? 6 : 9, vertical ? 9 : 6)
-    ctx.translate(canvas.width / 2, canvas.height / 2)
-    ctx.rotate({ left: Math.PI, down: Math.PI / 2, up: -Math.PI / 2 }[heading])
-    ctx.drawImage(flat.canvas, -4.5, -3)
-    return canvas
+    const size = 13
+    const { canvas, ctx } = offscreen(size, size)
+    const from = flat.ctx.getImageData(0, 0, 9, 6)
+    const to = ctx.createImageData(size, size)
+    const cos = Math.cos(step * TOP_TURN)
+    const sin = Math.sin(step * TOP_TURN)
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x + 0.5 - size / 2
+        const dy = y + 0.5 - size / 2
+        const sx = Math.floor(dx * cos + dy * sin + 4.5)
+        const sy = Math.floor(-dx * sin + dy * cos + 3)
+        if (sx < 0 || sy < 0 || sx >= 9 || sy >= 6) continue
+        const i = (sy * 9 + sx) * 4
+        const o = (y * size + x) * 4
+        for (let k = 0; k < 4; k++) to.data[o + k] = from.data[i + k]
+      }
+    }
+    ctx.putImageData(to, 0, 0)
+    return outline(canvas)
   })
 }
