@@ -4,6 +4,7 @@ import { GameAudio } from '../game/audio.ts'
 import { loadCutsceneArt } from '../game/cutsceneArt.ts'
 import { music } from '../game/music.ts'
 import { H, W } from '../game/scenery.ts'
+import { blip, voiceOf } from '../game/voice.ts'
 import type { Overlay, Scene, SharedLoops } from './types.ts'
 import './Cutscene.css'
 
@@ -15,6 +16,8 @@ interface CutsceneProps {
 }
 
 type Phase = 'ready' | 'playing' | 'paused'
+
+const SUBTITLE_SPEED = 35
 
 function useStageScale() {
   const [scale, setScale] = useState(1)
@@ -40,6 +43,12 @@ function locate(scenes: Scene[], time: number) {
   return null
 }
 
+function spoken(overlay: Overlay) {
+  if (overlay.dialogue) return { speaker: overlay.dialogue.speaker, text: overlay.dialogue.text }
+  if (overlay.subtitle?.speaker) return { speaker: overlay.subtitle.speaker, text: overlay.subtitle.text }
+  return null
+}
+
 export function Cutscene({ scenes, title = 'Последний круг', playerName, onFinish }: CutsceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [phase, setPhase] = useState<Phase>('ready')
@@ -60,7 +69,7 @@ export function Cutscene({ scenes, title = 'Последний круг', player
   const audioRef = useRef<GameAudio | null>(null)
   const loopsRef = useRef<SharedLoops>({})
   const rafRef = useRef(0)
-  const clock = useRef({ time: 0, last: 0, paused: false, scene: -1, fired: new Set<number>(), overlayKey: '' })
+  const clock = useRef({ time: 0, last: 0, paused: false, scene: -1, fired: new Set<number>(), overlayKey: '', subtitle: { text: '', since: 0 }, said: '' })
   const finishedRef = useRef(false)
   const reducedMotion = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
@@ -128,6 +137,16 @@ export function Cutscene({ scenes, title = 'Последний круг', player
       }
 
       const next = scene.overlay?.(where.t, playerName) ?? {}
+      if (next.subtitle && !reducedMotion.current) {
+        const { text } = next.subtitle
+        if (text !== state.subtitle.text) state.subtitle = { text, since: state.time }
+        next.subtitle = { ...next.subtitle, text: text.slice(0, Math.ceil((state.time - state.subtitle.since) * SUBTITLE_SPEED)) }
+      } else state.subtitle.text = ''
+      const line = spoken(next)
+      const said = line ? `${line.speaker}
+${line.text}` : ''
+      if (line && said.length > state.said.length && said.startsWith(state.said)) blip(voiceOf(line.speaker), said[said.length - 1])
+      state.said = said
       const key = JSON.stringify(next)
       if (key !== state.overlayKey) {
         state.overlayKey = key

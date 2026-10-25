@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/useAuth.ts'
 import { topicKey, type Topic } from './dialogues.ts'
 import { loadProgress, saveProgress } from './progress.ts'
+import { blip, voiceOf } from './voice.ts'
 
 const TYPE_SPEED = 45
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -39,6 +40,7 @@ export function useConversation<M extends string>(speakerId: string, topics: Top
   useEffect(() => {
     if (!line || !typing) return
     const timer = window.setTimeout(() => {
+      blip(voiceOf(line.by === 'detective' ? 'detective' : speakerId), line.text[chars])
       if (chars + 1 >= line.text.length) revealLine(lineIndex)
       else setChars(chars + 1)
     }, 1000 / TYPE_SPEED)
