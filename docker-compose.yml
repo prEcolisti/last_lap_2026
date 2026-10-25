@@ -1,7 +1,8 @@
-# Standalone PostgreSQL for "The Last Lap". Contains NO frontend/backend services.
+# PostgreSQL + backend API for "The Last Lap". The frontend runs separately (npm run dev, branch main).
 #
 #   docker compose up -d --wait postgres                      # start + wait until healthy
 #   docker compose run --rm tools bash scripts/migrate.sh up  # apply migrations (no host psql needed)
+#   docker compose up -d --wait backend                       # start the API on http://localhost:8000
 #   docker compose down                                       # stop (data is kept in the named volume)
 #   docker compose down -v                                    # stop AND DELETE ALL DATA
 
@@ -61,6 +62,24 @@ services:
     command: ["bash", "scripts/migrate.sh", "status"]
     volumes:
       - ./:/work
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${LAST_LAP_APP_USER}:${LAST_LAP_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173}
+    ports:
+      - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
   last_lap_pgdata:
